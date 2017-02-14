@@ -38,6 +38,7 @@ class users_app(models.Model):
     updated = models.DateTimeField(auto_now_add=True)
     dataset = models.CharField(max_length=5)
 
+
 class tweets_app(models.Model):
     created_at = models.CharField(max_length=200)
     id = models.IntegerField(default=0, primary_key=True)
@@ -58,6 +59,7 @@ class tweets_app(models.Model):
     num_urls = models.IntegerField(default=0)
     num_mentions = models.IntegerField(default=0)
     timestamp = models.DateTimeField(auto_now_add=True)
+
 
 class links_app(models.Model):
     source_id = models.IntegerField(default=0)
