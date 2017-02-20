@@ -1,8 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 # Create your views here.
 from django.http import HttpResponse
-from django.template import loader
+
+import tweepy
+from tweepy.auth import OAuthHandler
+
+
+consumer_token = "HMif7XOaMbrK8iBnZlYDwtnPa"
+consumer_secret = "jZR8th1C8Hj2YoLDVNnbMalpDUsEsOEzcDjSIhW70UF1FQ4mhf"
+
+callback_url = "localhost:8000"
 
 
 def index(request):
@@ -11,3 +19,33 @@ def index(request):
 
 def home(request):
     return HttpResponse("Home Page")
+
+
+def auth(request):
+    authen = tweepy.OAuthHandler(consumer_token, consumer_secret)
+
+    try:
+        redirect_url = authen.get_authorization_url()
+    except tweepy.TweepError:
+        print
+        'Error! Failed to get request token.'
+
+    request.session['request_token'] = authen.request_token
+
+    return redirect(redirect_url)
+
+
+def callback(request):
+    verifier = request.GET.get('oauth_verifier')
+
+    auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
+    token = request.session.get('request_token')
+    request.session.delete('request_token')
+    auth.request_token = token
+
+    try:
+        auth.get_access_token(verifier)
+        return HttpResponse("worked")
+    except tweepy.TweepError:
+        return HttpResponse("didn't work")
+
