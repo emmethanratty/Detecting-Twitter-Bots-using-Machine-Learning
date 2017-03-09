@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = '3kzx@7dj-!i5hc37e)zl_pj13w@vuo^2gt+@vx$8k2a4n^pkpu'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -78,8 +76,12 @@ WSGI_APPLICATION = 'FYP.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'dataset',
+        'USER': 'root',
+        'PASSWORD': 'dt228year1',
+        'HOST': 'localhost',
+        'PORT': '3306'
     }
 }
 

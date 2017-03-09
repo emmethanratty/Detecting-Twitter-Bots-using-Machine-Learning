@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.gis.db import models
 
 # Create your models here.
 
@@ -22,7 +23,7 @@ class users_app(models.Model):
     profile_image_url = models.CharField(max_length=200)
     profile_banner_url = models.CharField(max_length=200)
     profile_use_background_image = models.CharField(max_length=200)
-    profile_use_background_image_https = models.CharField(max_length=200)
+    profile_background_image_url_https = models.CharField(max_length=200)
     profile_text_color = models.CharField(max_length=200)
     profile_image_url_https = models.CharField(max_length=200)
     profile_sidebar_border_color = models.CharField(max_length=200)
@@ -37,6 +38,7 @@ class users_app(models.Model):
     description = models.CharField(max_length=200)
     updated = models.DateTimeField(auto_now_add=True)
     dataset = models.CharField(max_length=5)
+    bot = models.BooleanField(default=None)
 
 
 class tweets_app(models.Model):
@@ -50,7 +52,7 @@ class tweets_app(models.Model):
     in_reply_to_user_id = models.IntegerField(default=0)
     in_reply_to_screen_name = models.CharField(max_length=200)
     retweeted_status_id = models.IntegerField(default=0)
-    #geo = models.
+    geo = models.PointField(srid=4326, dim=3, default=None)
     place = models.CharField(max_length=200)
     retweet_count = models.IntegerField(default=0)
     reply_count = models.IntegerField(default=0)
