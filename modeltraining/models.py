@@ -23,7 +23,7 @@ class users_app(models.Model):
     profile_image_url = models.CharField(max_length=200, blank=True, null=True)
     profile_banner_url = models.CharField(max_length=200, blank=True, null=True)
     profile_use_background_image = models.CharField(max_length=200, blank=True, null=True)
-    profile_background_image_url_https = models.CharField(max_length=200, blank=True, null=True)
+    profile_background_image_url_https = models.CharField(max_length=500, blank=True, null=True)
     profile_text_color = models.CharField(max_length=200, blank=True, null=True)
     profile_image_url_https = models.CharField(max_length=200, blank=True, null=True)
     profile_sidebar_border_color = models.CharField(max_length=200, blank=True, null=True)
@@ -44,7 +44,7 @@ class users_app(models.Model):
 class tweets_app(models.Model):
     created_at = models.CharField(max_length=200, blank=True, null=True)
     id = models.BigIntegerField(default=0, primary_key=True)
-    text = models.CharField(max_length=200, blank=True, null=True)
+    text = models.CharField(max_length=1000, blank=True, null=True)
     source = models.CharField(max_length=200, blank=True, null=True)
     user_id = models.IntegerField(default=0, blank=True, null=True)
     truncated = models.CharField(max_length=200, blank=True, null=True)
