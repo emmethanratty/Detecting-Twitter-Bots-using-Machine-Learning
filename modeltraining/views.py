@@ -28,7 +28,7 @@ from django.http import HttpResponse
 def index(request):
     all_users_entries = users_app.objects.all()
 
-    nearest_neighbor(all_users_entries)
+    #nearest_neighbor(all_users_entries)
 
     linear_model(all_users_entries)
 
@@ -41,9 +41,55 @@ def index(request):
     return HttpResponse("Worked")
 
 
-def nearest_neighbor(all_users_entries):
+def linear_model(all_users_entries):
+    userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
+                                                      'favourites_count', 'listed_count')
+    userData_Y_Django = all_users_entries.values_list('bot', flat=True)
 
+    userData_Y_Bool = []
 
+    for user in userData_Y_Django:
+        if user == True:
+            userData_Y_Bool.append(1)
+        else:
+            userData_Y_Bool.append(0)
+
+    userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
+                                                                       'Friends Count', 'Favourite Count'])
+    userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
+    unique = np.unique(userData_Y)
+
+    np.random.seed(0)
+    indices = np.random.permutation(len(userData_X))
+    userData_X_train = userData_X[indices[:-20]]
+    userData_Y_train = userData_Y[indices[:-20]]
+    userData_X_test = userData_X[indices[-20:]]
+    userData_Y_test = userData_Y[indices[-20:]]
+
+    userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
+    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+
+    from sklearn import linear_model
+    regr = linear_model.LinearRegression()
+    regr.fit(userData_X_train, userData_Y_train)
+
+    print(regr.coef_)
+
+    predict = np.mean((regr.predict(userData_X_test.astype(float))-userData_Y_test.astype(float))**2)
+    #print(predict)
+    print(regr.score(userData_X_test.astype(float), userData_Y_test.astype(float)))
+
+    # count = 0
+    #
+    # for i in range(0, len(predict)):
+    #     if predict[i] == userData_Y_test[i]:
+    #         count += 1
+    #
+    # print(predict)
+    # print(userData_Y_test)
+    # print(len(userData_Y_test))
+    #
+    # print((count / len(userData_X_test)))
 
 
 def nearest_neighbor(all_users_entries):
@@ -58,8 +104,6 @@ def nearest_neighbor(all_users_entries):
             userData_Y_Bool.append(1)
         else:
             userData_Y_Bool.append(0)
-
-    print(userData_Y_Django)
 
     userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
                                                                        'Friends Count', 'Favourite Count'])
@@ -80,10 +124,15 @@ def nearest_neighbor(all_users_entries):
     knn = KNeighborsClassifier()
     knn.fit(userData_X_train, userData_Y_train)
 
+    KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
+                         metric_params=None, n_jobs=1, n_neighbors=5, p=2,
+                         weights='uniform')
+
     predict = knn.predict(userData_X_test)
 
     print(predict)
     print(userData_Y_test)
+    print(len(userData_Y_test))
 
     count = 0
 
