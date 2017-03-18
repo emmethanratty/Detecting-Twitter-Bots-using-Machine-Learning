@@ -19,18 +19,19 @@ from sklearn.svm import SVC
 from matplotlib.backends.backend_agg import FigureCanvasAgg, FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
-from sklearn import datasets
 
 # Create your views here.
 from django.http import HttpResponse
 
 
 def index(request):
-    all_users_entries = users_app.objects.all()
+    all_users_entries = users_app.objects.all()[:500]
 
     #nearest_neighbor(all_users_entries)
 
-    linear_model(all_users_entries)
+    #predict =  linear_model(all_users_entries)
+
+    predict = support_vector_machines(all_users_entries)
 
     names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count', 'Listed Count', 'Created At', 'Url',
              'Language', 'Time Zone', 'Location', 'Default Profile', 'Default Profile Image', 'Geo Enabled', 'Profile Image URL', 'Profile Banner URL',
@@ -38,8 +39,104 @@ def index(request):
              'Profile sidebar border color','Profile background tile', 'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
              'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
-    return HttpResponse("Worked")
+    return HttpResponse(predict)
 
+
+def random_forest(all_users_entries):
+    userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
+                                                      'favourites_count', 'listed_count')
+    userData_Y_Django = all_users_entries.values_list('bot', flat=True)
+
+    userData_Y_Bool = []
+
+    for user in userData_Y_Django:
+        if user == True:
+            userData_Y_Bool.append(1)
+        else:
+            userData_Y_Bool.append(0)
+
+    userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
+                                                                       'Friends Count', 'Favourite Count'])
+    userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
+    unique = np.unique(userData_Y)
+
+    np.random.seed(0)
+    indices = np.random.permutation(len(userData_X))
+    userData_X_train = userData_X[indices[:-.1 * len(userData_X)]]
+    userData_Y_train = userData_Y[indices[:-.1 * len(userData_Y)]]
+    userData_X_test = userData_X[indices[-.1 * len(userData_X):]]
+    userData_Y_test = userData_Y[indices[-.1 * len(userData_Y):]]
+
+    userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
+    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+
+
+def support_vector_machines(all_users_entries):
+
+    userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
+                                                      'favourites_count', 'listed_count')
+    userData_Y_Django = all_users_entries.values_list('bot', flat=True)
+
+    userData_Y_Bool = []
+
+    for user in userData_Y_Django:
+        if user == True:
+            userData_Y_Bool.append(1)
+        else:
+            userData_Y_Bool.append(0)
+
+    userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
+                                                                       'Friends Count', 'Favourite Count'])
+    userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
+    unique = np.unique(userData_Y)
+
+    np.random.seed(0)
+    indices = np.random.permutation(len(userData_X))
+    userData_X_train = userData_X[indices[:-.1*len(userData_X)]]
+    userData_Y_train = userData_Y[indices[:-.1*len(userData_Y)]]
+    userData_X_test = userData_X[indices[-.1*len(userData_X):]]
+    userData_Y_test = userData_Y[indices[-.1*len(userData_Y):]]
+
+    userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
+    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+
+    # n_sample = len(userData_X_train)
+    #
+    # np.random.seed(0)
+    # order = np.random.permutation(n_sample)
+    # userData_X_train = userData_X_train[order]
+    # userData_Y_train = userData_Y_train[order].astype(np.float)
+
+    from sklearn import svm
+
+    svc = svm.SVC(kernel='linear')
+
+    SVC(cache_size=7000)
+
+    svc.fit(userData_X_train, userData_Y_train)
+
+
+    # SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+    #     decision_function_shape=None, degree=3, gamma='auto', kernel='linear',
+    #     max_iter=-1, probability=False, random_state=None, shrinking=True,
+    #     tol=0.001, verbose=False)
+
+    #predict = "Worked"
+    predict = svc.predict(userData_X_test)
+
+    count = 0
+
+    for i in range(0, len(predict)):
+        if predict[i] == userData_Y_test[i]:
+            count += 1
+
+    print(predict)
+    print(userData_Y_test)
+    print(len(userData_Y_test))
+
+    print((count / len(userData_X_test)))
+
+    return predict
 
 def linear_model(all_users_entries):
     userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
@@ -61,10 +158,14 @@ def linear_model(all_users_entries):
 
     np.random.seed(0)
     indices = np.random.permutation(len(userData_X))
-    userData_X_train = userData_X[indices[:-20]]
-    userData_Y_train = userData_Y[indices[:-20]]
-    userData_X_test = userData_X[indices[-20:]]
-    userData_Y_test = userData_Y[indices[-20:]]
+    userData_X_train = userData_X[indices[:-.1*len(userData_X)]]
+    userData_Y_train = userData_Y[indices[:-.1*len(userData_Y)]]
+    userData_X_test = userData_X[indices[-.1*len(userData_X):]]
+    userData_Y_test = userData_Y[indices[-.1*len(userData_Y):]]
+    # userData_X_train = userData_X[indices[:-20]]
+    # userData_Y_train = userData_Y[indices[:-20]]
+    # userData_X_test = userData_X[indices[-20:]]
+    # userData_Y_test = userData_Y[indices[-20:]]
 
     userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
     userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
@@ -91,6 +192,8 @@ def linear_model(all_users_entries):
     #
     # print((count / len(userData_X_test)))
 
+    return predict
+
 
 def nearest_neighbor(all_users_entries):
     userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
@@ -112,10 +215,14 @@ def nearest_neighbor(all_users_entries):
 
     np.random.seed(0)
     indices = np.random.permutation(len(userData_X))
-    userData_X_train = userData_X[indices[:-10]]
-    userData_Y_train = userData_Y[indices[:-10]]
-    userData_X_test = userData_X[indices[-10:]]
-    userData_Y_test = userData_Y[indices[-10:]]
+    userData_X_train = userData_X[indices[:-.1*len(userData_X)]]
+    userData_Y_train = userData_Y[indices[:-.1*len(userData_Y)]]
+    userData_X_test = userData_X[indices[-.1*len(userData_X):]]
+    userData_Y_test = userData_Y[indices[-.1*len(userData_Y):]]
+    # userData_X_train = userData_X[indices[:-10]]
+    # userData_Y_train = userData_Y[indices[:-10]]
+    # userData_X_test = userData_X[indices[-10:]]
+    # userData_Y_test = userData_Y[indices[-10:]]
 
     userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
     userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
