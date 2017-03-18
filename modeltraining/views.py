@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.db import models
 from modeltraining.models import *
 from django.shortcuts import render
-import pandas
+import pandas as pd
 from pandas.tools.plotting import scatter_matrix
 import matplotlib.pyplot as plt
 from sklearn import model_selection
@@ -19,19 +19,22 @@ from sklearn.svm import SVC
 from matplotlib.backends.backend_agg import FigureCanvasAgg, FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
+import pickle
 
 # Create your views here.
 from django.http import HttpResponse
 
 
 def index(request):
-    all_users_entries = users_app.objects.all()[:500]
+    all_users_entries = users_app.objects.all()
 
     #nearest_neighbor(all_users_entries)
 
     #predict =  linear_model(all_users_entries)
 
-    predict = support_vector_machines(all_users_entries)
+    #predict = support_vector_machines(all_users_entries)
+
+    predict = random_forest(all_users_entries)
 
     names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count', 'Listed Count', 'Created At', 'Url',
              'Language', 'Time Zone', 'Location', 'Default Profile', 'Default Profile Image', 'Geo Enabled', 'Profile Image URL', 'Profile Banner URL',
@@ -58,17 +61,62 @@ def random_forest(all_users_entries):
     userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
                                                                        'Friends Count', 'Favourite Count'])
     userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
-    unique = np.unique(userData_Y)
+    # unique = np.unique(userData_Y)
+    #
+    # np.random.seed(0)
+    # indices = np.random.permutation(len(userData_X))
+    # userData_X_train = userData_X[indices[:-.1 * len(userData_X)]]
+    # userData_Y_train = userData_Y[indices[:-.1 * len(userData_Y)]]
+    # userData_X_test = userData_X[indices[-.1 * len(userData_X):]]
+    # userData_Y_test = userData_Y[indices[-.1 * len(userData_Y):]]
+    #
+    # userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
+    # userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
 
-    np.random.seed(0)
-    indices = np.random.permutation(len(userData_X))
-    userData_X_train = userData_X[indices[:-.1 * len(userData_X)]]
-    userData_Y_train = userData_Y[indices[:-.1 * len(userData_Y)]]
-    userData_X_test = userData_X[indices[-.1 * len(userData_X):]]
-    userData_Y_test = userData_Y[indices[-.1 * len(userData_Y):]]
+    from sklearn.ensemble import RandomForestClassifier
 
-    userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
-    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+    df = pd.DataFrame(userData_X, columns=['Statuses Count', 'Followers_Count', 'Friends Count', 'Favourite Count'])
+
+    print(len(userData_X))
+    print(len(userData_Y))
+
+    df['Bot'] = pd.Categorical.from_array(userData_Y)
+    df['is_train'] = np.random.uniform(0, 1, len(df)) <= .75
+
+    print(df.head())
+
+    train, test = df[df['is_train'] == True], df[df['is_train'] == False]
+
+    print('Number of observations in the training data:', len(train))
+    print('Number of observations in the test data:', len(test))
+
+    userDataNames = df.columns[:4]
+
+    y = train['Bot']
+
+    rf = RandomForestClassifier(n_jobs=2)
+
+    rf.fit(train[userDataNames], y)
+
+    predict = rf.predict(test[userDataNames])
+
+    test_y = test['Bot']
+
+    #predict=rf.predict_proba(test[userDataNames])
+
+    count = 0
+
+    for i in range(0, len(predict)):
+        print(predict[i], '=', test_y.iloc[i])
+        if predict[i] == test_y.iloc[[i]]:
+            count += 1
+
+    print((count / len(predict)*100))
+
+    filename = 'random_forest_model.sav'
+    pickle.dump(rf, open(filename, 'wb'))
+
+    return predict
 
 
 def support_vector_machines(all_users_entries):
