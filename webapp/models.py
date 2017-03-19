@@ -1,7 +1,7 @@
 from django.db import models
 
 class users_app(models.Model):
-    id = models.IntegerField(default=0, primary_key=True)
+    id = models.BigIntegerField(default=0, primary_key=True)
     name = models.CharField(max_length=200, blank=True, null=True)
     screen_name = models.CharField(max_length=200, blank=True, null=True)
     statuses_count = models.IntegerField(default=0, blank=True, null=True)
@@ -33,8 +33,6 @@ class users_app(models.Model):
     protected = models.CharField(max_length=200, blank=True, null=True)
     verified = models.CharField(max_length=200, blank=True, null=True)
     description = models.CharField(max_length=200, blank=True, null=True)
-    updated = models.DateTimeField(auto_now_add=True)
-    dataset = models.CharField(max_length=5, blank=True, null=True)
     bot = models.NullBooleanField(default=None)
 
 
