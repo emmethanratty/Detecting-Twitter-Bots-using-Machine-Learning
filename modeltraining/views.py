@@ -36,10 +36,12 @@ def index(request):
 
     predict = random_forest(all_users_entries)
 
-    names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count', 'Listed Count', 'Created At', 'Url',
-             'Language', 'Time Zone', 'Location', 'Default Profile', 'Default Profile Image', 'Geo Enabled', 'Profile Image URL', 'Profile Banner URL',
-             'Profile User Background Image', 'Profile Background image url', 'Profile Text Colour', 'Profile Image url https',
-             'Profile sidebar border color','Profile background tile', 'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
+    names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
+             'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
+             'Default Profile Image', 'Geo Enabled', 'Profile Image URL', 'Profile Banner URL',
+             'Profile User Background Image', 'Profile Background image url', 'Profile Text Colour',
+             'Profile Image url https','Profile sidebar border color', 'Profile background tile',
+             'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
              'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
     return HttpResponse(predict)
@@ -61,17 +63,6 @@ def random_forest(all_users_entries):
     userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
                                                                        'Friends Count', 'Favourite Count'])
     userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
-    # unique = np.unique(userData_Y)
-    #
-    # np.random.seed(0)
-    # indices = np.random.permutation(len(userData_X))
-    # userData_X_train = userData_X[indices[:-.1 * len(userData_X)]]
-    # userData_Y_train = userData_Y[indices[:-.1 * len(userData_Y)]]
-    # userData_X_test = userData_X[indices[-.1 * len(userData_X):]]
-    # userData_Y_test = userData_Y[indices[-.1 * len(userData_Y):]]
-    #
-    # userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
-    # userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
 
     from sklearn.ensemble import RandomForestClassifier
 
