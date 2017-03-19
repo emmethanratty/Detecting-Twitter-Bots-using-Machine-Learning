@@ -4,6 +4,8 @@
       <w>backends</w>
       <w>dataset</w>
       <w>modeltraining</w>
+      <w>regr</w>
+      <w>userdata</w>
       <w>webapp</w>
     </words>
   </dictionary>

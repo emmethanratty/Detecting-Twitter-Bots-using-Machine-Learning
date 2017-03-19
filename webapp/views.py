@@ -18,6 +18,11 @@ def home(request):
 
 
 def auth(request):
+
+    if request.method == "POST":
+        handle = request.POST["TwitterHandle"]
+        request.session["TwitterHandle"] = handle
+
     auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
 
     try:
@@ -32,26 +37,47 @@ def auth(request):
 
 
 def callback(request):
-    verifier = request.GET.get('oauth_verifier')
 
-    auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
-    token = request.session.get('request_token')
-    # request.session.delete('request_token')
-    auth.request_token = token
+    if 'TwitterHandle' in request.session:
+        handle = request.session['TwitterHandle']
 
-    try:
-        auth.get_access_token(verifier)
-        api = tweepy.API(auth)
+        verifier = request.GET.get('oauth_verifier')
 
-        public_tweets = api.home_timeline()
+        auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
+        token = request.session.get('request_token')
+        # request.session.delete('request_token')
+        auth.request_token = token
 
-        string = ""
+        try:
+            auth.get_access_token(verifier)
+            api = tweepy.API(auth)
 
-        for tweets in public_tweets:
-            string += tweets.text
-            string += "           "
+            user = api.get_user(handle)
 
-        return HttpResponse(string)
-    except tweepy.TweepError:
-        return HttpResponse("didn't work")
+            tweets = []
 
+            tweets_200 = api.user_timeline(screen_name=handle, count=200)
+
+            print(len(tweets_200))
+
+            tweets.extend(tweets_200)
+
+            realign = tweets[-1].id - 1
+
+            for i in range(0, 4):
+                tweets_200 = api.user_timeline(screen_name=handle, count=200, max_id=realign)
+
+                tweets.extend(tweets_200)
+                realign = tweets[-1].id - 1
+
+            tweets_200 = api.user_timeline(screen_name=handle, count=1, max_id=realign)
+
+            tweets.extend(tweets_200)
+            print(len(tweets))
+
+            #return render(request, "webapp/prediction.html")
+            return HttpResponse(user, tweets)
+        except tweepy.TweepError:
+            return HttpResponse("didn't work")
+    else:
+        return "didn't work cause"
