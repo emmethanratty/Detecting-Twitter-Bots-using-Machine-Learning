@@ -4,8 +4,7 @@ from sklearn.svm import SVC
 import numpy as np
 import pickle
 from sklearn.ensemble import RandomForestClassifier
-
-# Create your views here.
+from sklearn.metrics import precision_recall_fscore_support
 from django.http import HttpResponse
 
 
@@ -36,7 +35,7 @@ def index(request):
 def random_forest_tweets(all_tweet_entries):
     tweetdata_x_django = all_tweet_entries.values_list('retweet_count', 'num_hashtags', 'num_urls',
                                                        'num_mentions')
-    tweetdata_y_django = userdata_y_django = all_tweet_entries.values_list('bot', flat=True)
+    tweetdata_y_django = all_tweet_entries.values_list('bot', flat=True)
 
     tweetdata_y_bool = []
 
@@ -78,15 +77,21 @@ def random_forest_tweets(all_tweet_entries):
 
     count = 0
 
+    true = []
+
     for i in range(0, len(predict)):
         print(predict[i], '=', test_y.iloc[i])
+        true.extend(test_y.iloc[[i]])
         if predict[i] == test_y.iloc[[i]]:
             count += 1
 
-    print((count / len(predict) * 100))
-
     filename = 'random_forest_tweet_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
+
+    print(len(predict))
+    print((count / len(predict) * 100))
+
+    print(precision_recall_fscore_support(predict, true))
 
     return predict
 
@@ -138,14 +143,17 @@ def random_forest(all_users_entries):
 #    predict=rf.predict_proba(test[user_data_names])
 
     count = 0
-
+    true = []
     for i in range(0, len(predict)):
         print(predict[i], '=', test_y.iloc[i])
+        true.extend(test_y.iloc[[i]])
         if predict[i] == test_y.iloc[[i]]:
             count += 1
 
+    print(len(predict))
     print((count / len(predict)*100))
 
+    print(precision_recall_fscore_support(predict, true))
     filename = 'random_forest_user_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
@@ -232,95 +240,94 @@ def linear_model(all_users_entries):
     np.random.seed(0)
     indices = np.random.permutation(len(userdata_x))
     userdata_x_train = userdata_x[indices[:-.1*len(userdata_x)]]
-    userData_Y_train = userdata_y[indices[:-.1*len(userdata_y)]]
-    userData_X_test = userdata_x[indices[-.1*len(userdata_x):]]
-    userData_Y_test = userdata_y[indices[-.1*len(userdata_y):]]
+    userdata_y_train = userdata_y[indices[:-.1*len(userdata_y)]]
+    userdata_x_test = userdata_x[indices[-.1*len(userdata_x):]]
+    userdata_y_test = userdata_y[indices[-.1*len(userdata_y):]]
     # userdata_x_train = userdata_x[indices[:-20]]
-    # userData_Y_train = userdata_y[indices[:-20]]
-    # userData_X_test = userdata_x[indices[-20:]]
-    # userData_Y_test = userdata_y[indices[-20:]]
+    # userdata_y_train = userdata_y[indices[:-20]]
+    # userdata_x_test = userdata_x[indices[-20:]]
+    # userdata_y_test = userdata_y[indices[-20:]]
 
     userdata_x_train = userdata_x_train.reshape(len(userdata_x_train), 1)
-    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+    userdata_x_test = userdata_x_test.reshape(len(userdata_x_test), 1)
 
     from sklearn import linear_model
     regr = linear_model.LinearRegression()
-    regr.fit(userdata_x_train, userData_Y_train)
+    regr.fit(userdata_x_train, userdata_y_train)
 
     print(regr.coef_)
 
-    predict = np.mean((regr.predict(userData_X_test.astype(float))-userData_Y_test.astype(float))**2)
-    #print(predict)
-    print(regr.score(userData_X_test.astype(float), userData_Y_test.astype(float)))
+    predict = np.mean((regr.predict(userdata_x_test.astype(float))-userdata_y_test.astype(float))**2)
+
+    print(regr.score(userdata_x_test.astype(float), userdata_y_test.astype(float)))
 
     # count = 0
     #
     # for i in range(0, len(predict)):
-    #     if predict[i] == userData_Y_test[i]:
+    #     if predict[i] == userdata_y_test[i]:
     #         count += 1
     #
     # print(predict)
-    # print(userData_Y_test)
-    # print(len(userData_Y_test))
+    # print(userdata_y_test)
+    # print(len(userdata_y_test))
     #
-    # print((count / len(userData_X_test)))
+    # print((count / len(userdata_x_test)))
 
     return predict
 
 
 def nearest_neighbor(all_users_entries):
-    userData_X_Django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
+    userdata_x_django = all_users_entries.values_list('statuses_count', 'followers_count', 'friends_count',
                                                       'favourites_count', 'listed_count')
-    userData_Y_Django = all_users_entries.values_list('bot', flat=True)
+    userdata_y_django = all_users_entries.values_list('bot', flat=True)
 
-    userData_Y_Bool = []
+    userdata_y_bool = []
 
-    for user in userData_Y_Django:
-        if user == True:
-            userData_Y_Bool.append(1)
+    for user in userdata_y_django:
+        if user is True:
+            userdata_y_bool.append(1)
         else:
-            userData_Y_Bool.append(0)
+            userdata_y_bool.append(0)
 
-    userData_X = np.core.records.fromrecords(userData_X_Django, names=['Statuses Count', 'Followers_Count',
+    userdata_x = np.core.records.fromrecords(userdata_x_django, names=['Statuses Count', 'Followers_Count',
                                                                        'Friends Count', 'Favourite Count'])
-    userData_Y = np.fromiter(userData_Y_Bool, np.dtype('int_'))
-    unique = np.unique(userData_Y)
+    userdata_y = np.fromiter(userdata_y_bool, np.dtype('int_'))
 
     np.random.seed(0)
-    indices = np.random.permutation(len(userData_X))
-    userData_X_train = userData_X[indices[:-.1*len(userData_X)]]
-    userData_Y_train = userData_Y[indices[:-.1*len(userData_Y)]]
-    userData_X_test = userData_X[indices[-.1*len(userData_X):]]
-    userData_Y_test = userData_Y[indices[-.1*len(userData_Y):]]
-    # userData_X_train = userData_X[indices[:-10]]
-    # userData_Y_train = userData_Y[indices[:-10]]
-    # userData_X_test = userData_X[indices[-10:]]
-    # userData_Y_test = userData_Y[indices[-10:]]
+    indices = np.random.permutation(len(userdata_x))
+    userdata_x_train = userdata_x[indices[:-.1*len(userdata_x)]]
+    userdata_y_train = userdata_y[indices[:-.1*len(userdata_y)]]
+    userdata_x_test = userdata_x[indices[-.1*len(userdata_x):]]
+    userdata_y_test = userdata_y[indices[-.1*len(userdata_y):]]
+    # userdata_x_train = userdata_x[indices[:-10]]
+    # userdata_y_train = userdata_y[indices[:-10]]
+    # userdata_x_test = userdata_x[indices[-10:]]
+    # userdata_y_test = userdata_y[indices[-10:]]
 
-    userData_X_train = userData_X_train.reshape(len(userData_X_train), 1)
-    userData_X_test = userData_X_test.reshape(len(userData_X_test), 1)
+    userdata_x_train = userdata_x_train.reshape(len(userdata_x_train), 1)
+    userdata_x_test = userdata_x_test.reshape(len(userdata_x_test), 1)
 
     from sklearn.neighbors import KNeighborsClassifier
     knn = KNeighborsClassifier()
-    knn.fit(userData_X_train, userData_Y_train)
+    knn.fit(userdata_x_train, userdata_y_train)
 
     KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
                          metric_params=None, n_jobs=1, n_neighbors=5, p=2,
                          weights='uniform')
 
-    predict = knn.predict(userData_X_test)
+    predict = knn.predict(userdata_x_test)
 
     print(predict)
-    print(userData_Y_test)
-    print(len(userData_Y_test))
+    print(userdata_y_test)
+    print(len(userdata_y_test))
 
     count = 0
 
     for i in range(0, len(predict)):
-        if predict[i] == userData_Y_test[i]:
+        if predict[i] == userdata_y_test[i]:
             count += 1
 
-    print((count / len(userData_X_test)))
+    print((count / len(userdata_x_test)))
 
 
 
