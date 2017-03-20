@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.svm import SVC
 import numpy as np
 import pickle
+from sklearn.ensemble import RandomForestClassifier
 
 # Create your views here.
 from django.http import HttpResponse
@@ -10,6 +11,7 @@ from django.http import HttpResponse
 
 def index(request):
     all_users_entries = users_app.objects.all()
+    all_tweet_entries = tweets_app.objects.all()
 
 #    nearest_neighbor(all_users_entries)
 
@@ -17,7 +19,8 @@ def index(request):
 
 #    predict = support_vector_machines(all_users_entries)
 
-    predict = random_forest(all_users_entries)
+    #predict = random_forest(all_users_entries)
+    predict = random_forest_tweets(all_tweet_entries)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -28,6 +31,64 @@ def index(request):
     #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
     return HttpResponse(predict)
+
+
+def random_forest_tweets(all_tweet_entries):
+    tweetdata_x_django = all_tweet_entries.values_list('retweet_count', 'num_hashtags', 'num_urls',
+                                                       'num_mentions')
+    tweetdata_y_django = userdata_y_django = all_tweet_entries.values_list('bot', flat=True)
+
+    tweetdata_y_bool = []
+
+    for tweet in tweetdata_y_django:
+        if tweet is True:
+            tweetdata_y_bool.append(1)
+        else:
+            tweetdata_y_bool.append(0)
+
+    tweetdata_x = np.core.records.fromrecords(tweetdata_x_django, names=['retweet_count', 'num_hashtags', 'num_urls',
+                                                                         'num_mentions'])
+    tweetdata_y = np.fromiter(tweetdata_y_bool, np.dtype('int_'))
+
+    df = pd.DataFrame(tweetdata_x, columns=['retweet_count', 'num_hashtags', 'num_urls', 'num_mentions'])
+
+    df['Bot'] = pd.Categorical.from_array(tweetdata_y)
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
+
+    print(df.head())
+
+    train, test = df[df['to_train'] == True], df[df['to_train'] == False]
+
+    print('Number of observations in the training data:', len(train))
+    print('Number of observations in the test data:', len(test))
+
+    tweet_data_names = df.columns[:4]
+
+    y = train['Bot']
+
+    rf = RandomForestClassifier(n_jobs=2)
+
+    rf.fit(train[tweet_data_names], y)
+
+    predict = rf.predict(test[tweet_data_names])
+
+    test_y = test['Bot']
+
+    #    predict=rf.predict_proba(test[user_data_names])
+
+    count = 0
+
+    for i in range(0, len(predict)):
+        print(predict[i], '=', test_y.iloc[i])
+        if predict[i] == test_y.iloc[[i]]:
+            count += 1
+
+    print((count / len(predict) * 100))
+
+    filename = 'random_forest_tweet_model.sav'
+    pickle.dump(rf, open(filename, 'wb'))
+
+    return predict
 
 
 def random_forest(all_users_entries):
@@ -47,19 +108,17 @@ def random_forest(all_users_entries):
                                                                        'Friends Count', 'Favourite Count'])
     userdata_y = np.fromiter(userdata_y_bool, np.dtype('int_'))
 
-    from sklearn.ensemble import RandomForestClassifier
-
     df = pd.DataFrame(userdata_x, columns=['Statuses Count', 'Followers_Count', 'Friends Count', 'Favourite Count'])
 
     print(len(userdata_x))
     print(len(userdata_y))
 
     df['Bot'] = pd.Categorical.from_array(userdata_y)
-    df['is_train'] = np.random.uniform(0, 1, len(df)) <= .75
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
 
     print(df.head())
 
-    train, test = df[df['is_train'] == True], df[df['is_train'] == False]
+    train, test = df[df['to_train'] == True], df[df['to_train'] == False]
 
     print('Number of observations in the training data:', len(train))
     print('Number of observations in the test data:', len(test))
