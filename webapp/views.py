@@ -5,6 +5,8 @@ import pickle
 import numpy as np
 import tweepy
 import pandas as pd
+import datetime
+import string
 
 consumer_token = "HMif7XOaMbrK8iBnZlYDwtnPa"
 consumer_secret = "jZR8th1C8Hj2YoLDVNnbMalpDUsEsOEzcDjSIhW70UF1FQ4mhf"
@@ -57,33 +59,37 @@ def callback(request):
 
             user = api.get_user(handle)
 
-            user_id = insert_user_data(user)
+            user_id, lang = insert_user_data(user)
 
             balh = rf_user_prediction(user_id)
 
-            # tweets = []
-            #
-            # tweets_200 = api.user_timeline(screen_name=handle, count=200)
-            #
-            # print(len(tweets_200))
-            #
-            # tweets.extend(tweets_200)
-            #
-            # realign = tweets[-1].id - 1
-            #
-            # for i in range(0, 4):
-            #     tweets_200 = api.user_timeline(screen_name=handle, count=200, max_id=realign)
-            #
-            #     tweets.extend(tweets_200)
-            #     realign = tweets[-1].id - 1
-            #
-            # tweets_200 = api.user_timeline(screen_name=handle, count=1, max_id=realign)
-            #
-            # tweets.extend(tweets_200)
-            # print(len(tweets))
+            tweets = []
 
-            #return render(request, "webapp/prediction.html")
-            return HttpResponse(balh)
+            tweets_200 = api.user_timeline(screen_name=handle, count=200)
+
+            if tweets_200:
+
+                print(len(tweets_200))
+
+                tweets.extend(tweets_200)
+
+                realign = tweets[-1].id - 1
+
+                for i in range(0, 4):
+                    tweets_200 = api.user_timeline(screen_name=handle, count=200, max_id=realign)
+
+                    tweets.extend(tweets_200)
+                    realign = tweets[-1].id - 1
+
+                tweets_200 = api.user_timeline(screen_name=handle, count=1, max_id=realign)
+
+                tweets.extend(tweets_200)
+                print(len(tweets))
+
+                insert_tweet_data(tweets, lang, user_id)
+
+                #return render(request, "webapp/prediction.html")
+            return HttpResponse(tweets)
         except tweepy.TweepError:
             return HttpResponse("didn't work")
     else:
@@ -108,7 +114,22 @@ def insert_user_data(user_data):
                      description=user_data.description)
 
     user.save()
-    return user.id
+    return user.id, user.lang
+
+
+def insert_tweet_data(tweets, lang, user_id):
+    for tweet in tweets:
+        utf = strip_non_ascii(tweet.text)
+
+        tweet_data = tweets_app(created_at=tweet.created_at, id=tweet.id, text=utf, source=tweet.source,
+                                user_id=user_id, truncated=tweet.truncated, in_reply_to_status_id=tweet.in_reply_to_status_id,
+                                in_reply_to_user_id=tweet.in_reply_to_user_id, in_reply_to_screen_name=tweet.in_reply_to_screen_name,
+                                geo=tweet.geo, retweet_count=tweet.retweet_count,
+                                favorite_count=tweet.favorite_count,
+                                num_hashtags=len(tweet.entities['hashtags']), num_urls=len(tweet.entities['urls']),
+                                num_mentions=len(tweet.entities['user_mentions']), lang=lang)
+        tweet_data.save()
+        print("Saved")
 
 
 def rf_user_prediction(user_id):
@@ -130,3 +151,8 @@ def rf_user_prediction(user_id):
     print(predict)
 
     return rf_user_model.predict_proba(df)
+
+def strip_non_ascii(string):
+    ''' Returns the string without non ASCII characters'''
+    stripped = (c for c in string if 0 < ord(c) < 127)
+    return ''.join(stripped)

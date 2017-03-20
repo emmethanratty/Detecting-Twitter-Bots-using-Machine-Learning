@@ -61,6 +61,7 @@ class tweets_app(models.Model):
     num_urls = models.IntegerField(default=0, blank=True, null=True)
     num_mentions = models.IntegerField(default=0, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    lang = models.CharField(max_length=200, blank=True, null=True)
     bot = models.NullBooleanField(default=None)
 
 
