@@ -6,6 +6,10 @@ import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_fscore_support
 from django.http import HttpResponse
+from textblob import TextBlob
+import re
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 
 
 def index(request):
@@ -19,7 +23,9 @@ def index(request):
 #    predict = support_vector_machines(all_users_entries)
 
     #predict = random_forest(all_users_entries)
-    predict = random_forest_tweets(all_tweet_entries)
+    #predict = random_forest_tweets(all_tweet_entries)
+
+    sorted_tweets = sentiment_analyses(all_tweet_entries)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -29,7 +35,7 @@ def index(request):
     #          'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
     #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
-    return HttpResponse(predict)
+    return HttpResponse(sorted_tweets)
 
 
 def random_forest_tweets(all_tweet_entries):
@@ -263,18 +269,6 @@ def linear_model(all_users_entries):
 
     print(regr.score(userdata_x_test.astype(float), userdata_y_test.astype(float)))
 
-    # count = 0
-    #
-    # for i in range(0, len(predict)):
-    #     if predict[i] == userdata_y_test[i]:
-    #         count += 1
-    #
-    # print(predict)
-    # print(userdata_y_test)
-    # print(len(userdata_y_test))
-    #
-    # print((count / len(userdata_x_test)))
-
     return predict
 
 
@@ -301,10 +295,6 @@ def nearest_neighbor(all_users_entries):
     userdata_y_train = userdata_y[indices[:-.1*len(userdata_y)]]
     userdata_x_test = userdata_x[indices[-.1*len(userdata_x):]]
     userdata_y_test = userdata_y[indices[-.1*len(userdata_y):]]
-    # userdata_x_train = userdata_x[indices[:-10]]
-    # userdata_y_train = userdata_y[indices[:-10]]
-    # userdata_x_test = userdata_x[indices[-10:]]
-    # userdata_y_test = userdata_y[indices[-10:]]
 
     userdata_x_train = userdata_x_train.reshape(len(userdata_x_train), 1)
     userdata_x_test = userdata_x_test.reshape(len(userdata_x_test), 1)
@@ -330,6 +320,111 @@ def nearest_neighbor(all_users_entries):
             count += 1
 
     print((count / len(userdata_x_test)))
+
+
+def sentiment_analyses(all_tweet_entries):
+
+    tweets = all_tweet_entries.values_list('user_id', 'text', 'bot')
+
+    sorted_tweets = sorted(tweets, key=lambda tw: tw[0])
+
+    tweet_id = sorted_tweets[0][0]
+    sentiment = [0, 0, 0, 0]
+    sentiment_list = []
+    count = 0
+    print(tweet_id)
+
+    for tweet in sorted_tweets:
+        if tweet[0] != tweet_id:
+            tweet_id = tweet[0]
+            if tweet[2]:
+                sentiment[3] = 1
+                print(tweet[2])
+            else:
+                sentiment[3] = 0
+                print(tweet[2])
+
+            sentiment_list.append(sentiment)
+            sentiment = [0, 0, 0, 0]
+            count = 0
+
+        #if count < 1000:
+        tweet_sentiment = get_sentiment(tweet[1])
+
+        if tweet_sentiment == 'positive':
+            sentiment[0] += 1
+        elif tweet_sentiment == 'neutral':
+            sentiment[1] += 1
+        elif tweet_sentiment == 'negative':
+            sentiment[2] += 1
+            count += 1
+
+    predict = random_forest_sentiment(sentiment_list)
+    print(len(sentiment_list))
+    return predict
+
+
+def get_sentiment(text):
+    tweet_sentiment = TextBlob(strip_tweet(text))
+
+    if tweet_sentiment.sentiment.polarity > 0:
+        return 'positive'
+    elif tweet_sentiment.sentiment.polarity == 0:
+        return 'neutral'
+    else:
+        return 'negative'
+
+
+def random_forest_sentiment(sentiment_list):
+    print('in')
+
+    sentiment = np.core.records.fromrecords(sentiment_list, names=['positive', 'neutral', 'negative', 'bot'])
+
+    df = pd.DataFrame(sentiment, columns=['positive', 'neutral', 'negative', 'bot'])
+
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
+
+    print(df.head())
+
+    train, test = df[df['to_train'] == True], df[df['to_train'] == False]
+
+    print('Number of observations in the training data:', len(train))
+    print('Number of observations in the test data:', len(test))
+
+    sentiment_names = df.columns[:3]
+
+    y = train['bot']
+
+    rf = RandomForestClassifier(n_jobs=2)
+
+    rf.fit(train[sentiment_names], y)
+
+    predict = rf.predict(test[sentiment_names])
+
+    test_y = test['bot']
+
+    #    predict=rf.predict_proba(test[user_data_names])
+
+    count = 0
+    for i in range(0, len(predict)):
+        print(predict[i], '=', test.iloc[i]['bot'])
+        if predict[i] == test.iloc[i]['bot']:
+            count += 1
+
+    print(len(predict))
+    print((count / len(predict) * 100))
+
+    filename = 'random_forest_sentiment_model.sav'
+    pickle.dump(rf, open(filename, 'wb'))
+
+    print(accuracy_score(test_y, predict))
+    # confusion matrix
+    # oversample data
+    return predict
+
+
+def strip_tweet(tweet):
+    return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])| (\w +:\ / \ / \S +)", " ", tweet).split())
 
 
 
