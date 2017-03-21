@@ -89,7 +89,7 @@ def callback(request):
                 insert_tweet_data(tweets, lang, user_id)
 
                 #return render(request, "webapp/prediction.html")
-            return HttpResponse(tweets)
+            return HttpResponse("worked")
         except tweepy.TweepError:
             return HttpResponse("didn't work")
     else:
@@ -129,7 +129,6 @@ def insert_tweet_data(tweets, lang, user_id):
                                 num_hashtags=len(tweet.entities['hashtags']), num_urls=len(tweet.entities['urls']),
                                 num_mentions=len(tweet.entities['user_mentions']), lang=lang)
         tweet_data.save()
-        print("Saved")
 
 
 def rf_user_prediction(user_id):
@@ -152,7 +151,9 @@ def rf_user_prediction(user_id):
 
     return rf_user_model.predict_proba(df)
 
-def strip_non_ascii(string):
-    ''' Returns the string without non ASCII characters'''
-    stripped = (c for c in string if 0 < ord(c) < 127)
+
+def strip_non_ascii(passed_string):
+    # Returns the string without non ASCII characters
+    stripped = (c for c in passed_string if 0 < ord(c) < 127)
     return ''.join(stripped)
+

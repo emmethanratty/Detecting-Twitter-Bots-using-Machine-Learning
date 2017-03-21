@@ -157,6 +157,8 @@ def random_forest(all_users_entries):
     filename = 'random_forest_user_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
+    #confusion matrix
+    #oversample data
     return predict
 
 
