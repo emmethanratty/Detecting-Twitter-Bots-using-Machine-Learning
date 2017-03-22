@@ -8,10 +8,9 @@ from sklearn.metrics import precision_recall_fscore_support
 from django.http import HttpResponse
 from textblob import TextBlob
 import re
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
-from translate import translator
 from yandex_translate import YandexTranslate
+
 
 
 def index(request):
@@ -326,7 +325,7 @@ def nearest_neighbor(all_users_entries):
 
 def sentiment_analyses(all_tweet_entries):
 
-    tweets = all_tweet_entries.values_list('user_id', 'text', 'bot', 'lang')
+    tweets = all_tweet_entries.values_list('user_id', 'text', 'bot', 'lang', 'id')
 
     sorted_tweets = sorted(tweets, key=lambda tw: tw[0])
 
@@ -335,30 +334,40 @@ def sentiment_analyses(all_tweet_entries):
     sentiment_list = []
     count = 0
     print(tweet_id)
+    batch_update = ''
 
     for tweet in sorted_tweets:
         if tweet[0] != tweet_id:
             if tweet[2]:
                 sentiment[3] = 1
-                print(tweet[2])
+                #print(tweet[2])
             else:
                 sentiment[3] = 0
-                print(tweet[2])
+                #print(tweet[2])
+
+            #print(batch_update)
+
+            if batch_update != '':
+
+                translated_string = translate_string(batch_update)
+                print("50 in")
+
+                #print(translated_string)
 
             #insert_sentiment(tweet[0], sentiment)
             sentiment_list.append(sentiment)
             sentiment = [0, 0, 0, 0]
             count = 0
+            batch_update = ''
             tweet_id = tweet[0]
 
-        if count < 500:
+        if count < 100:
 
             passed_tweet = strip_tweet(tweet[1])
 
             if tweet[3] != 'en':
-                translated_tweet = translate_string(passed_tweet)
-                passed_tweet = translated_tweet[0]
-            print(passed_tweet)
+                batch_update += str(tweet[4]) + ':::::::' + passed_tweet + ';;;;;;;'
+                #print(passed_tweet)
 
             tweet_sentiment = get_sentiment(tweet[1])
 
@@ -418,17 +427,17 @@ def random_forest_sentiment(sentiment_list):
 
     count = 0
     for i in range(0, len(predict)):
-        print(predict[i], '=', test.iloc[i]['bot'])
+        #print(predict[i], '=', test.iloc[i]['bot'])
         if predict[i] == test.iloc[i]['bot']:
             count += 1
 
-    print(len(predict))
-    print((count / len(predict) * 100))
+    # print(len(predict))
+    # print((count / len(predict) * 100))
 
     filename = 'random_forest_sentiment_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
-    print(accuracy_score(test_y, predict))
+    #print(accuracy_score(test_y, predict))
     # confusion matrix
     # oversample data
     return predict
@@ -438,16 +447,42 @@ def strip_tweet(tweet):
     return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])| (\w +:\ / \ / \S +)", " ", tweet).split())
 
 
-def translate_string( text_passed):
-    translate = YandexTranslate('trnsl.1.1.20170321T235434Z.1b909278959d307a.2d404c8d7332660c580835f3922a3f2387864f7d')
+def translate_string(text_passed):
+    translate = YandexTranslate('trnsl.1.1.20170322T165243Z.cc4baa633b54ee81.0e9596dca723df99fb296e20846bc47b66bb678f')
     translated = translate.translate(text_passed, 'en')
-    return translated['text']
+
+    batch_update(translated['text'][0])
+
+    return translated['text'][0]
 
 
 def insert_sentiment(passed_id, sentiment):
     sent = sentiment_app(id=passed_id, positive=sentiment[0], neutral=sentiment[1], negative=[2], bot=sentiment[3])
     sent.save()
 
+
+def translated_tweet_update(tweet_id, text):
+    t = tweets_app.objects.get(id=tweet_id)
+
+    t.lang = 'en'
+    t.text = text
+    t.save()
+    #print('Tweet: ', tweet_id, ' Text: ', text, ' updated')
+
+
+def batch_update(text):
+    tweets_and_ids = text.split(';;;;;;;')
+
+    for tweets in tweets_and_ids:
+
+        split_tweet = tweets.split(':::::::')
+        if split_tweet[0] != '':
+            #print('id: ', split_tweet[0], 'text: ', split_tweet[1])
+            tweet_id = int(split_tweet[0])
+            t = tweets_app.objects.get(id=tweet_id)
+            t.lang = 'en'
+            t.text = split_tweet[1]
+            t.save()
 
 
 
