@@ -10,6 +10,8 @@ from textblob import TextBlob
 import re
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
+from translate import translator
+from yandex_translate import YandexTranslate
 
 
 def index(request):
@@ -324,7 +326,7 @@ def nearest_neighbor(all_users_entries):
 
 def sentiment_analyses(all_tweet_entries):
 
-    tweets = all_tweet_entries.values_list('user_id', 'text', 'bot')
+    tweets = all_tweet_entries.values_list('user_id', 'text', 'bot', 'lang')
 
     sorted_tweets = sorted(tweets, key=lambda tw: tw[0])
 
@@ -336,7 +338,6 @@ def sentiment_analyses(all_tweet_entries):
 
     for tweet in sorted_tweets:
         if tweet[0] != tweet_id:
-            tweet_id = tweet[0]
             if tweet[2]:
                 sentiment[3] = 1
                 print(tweet[2])
@@ -344,19 +345,29 @@ def sentiment_analyses(all_tweet_entries):
                 sentiment[3] = 0
                 print(tweet[2])
 
+            #insert_sentiment(tweet[0], sentiment)
             sentiment_list.append(sentiment)
             sentiment = [0, 0, 0, 0]
             count = 0
+            tweet_id = tweet[0]
 
-        #if count < 1000:
-        tweet_sentiment = get_sentiment(tweet[1])
+        if count < 500:
 
-        if tweet_sentiment == 'positive':
-            sentiment[0] += 1
-        elif tweet_sentiment == 'neutral':
-            sentiment[1] += 1
-        elif tweet_sentiment == 'negative':
-            sentiment[2] += 1
+            passed_tweet = strip_tweet(tweet[1])
+
+            if tweet[3] != 'en':
+                translated_tweet = translate_string(passed_tweet)
+                passed_tweet = translated_tweet[0]
+            print(passed_tweet)
+
+            tweet_sentiment = get_sentiment(tweet[1])
+
+            if tweet_sentiment == 'positive':
+                sentiment[0] += 1
+            elif tweet_sentiment == 'neutral':
+                sentiment[1] += 1
+            elif tweet_sentiment == 'negative':
+                sentiment[2] += 1
             count += 1
 
     predict = random_forest_sentiment(sentiment_list)
@@ -365,7 +376,7 @@ def sentiment_analyses(all_tweet_entries):
 
 
 def get_sentiment(text):
-    tweet_sentiment = TextBlob(strip_tweet(text))
+    tweet_sentiment = TextBlob(text)
 
     if tweet_sentiment.sentiment.polarity > 0:
         return 'positive'
@@ -426,6 +437,16 @@ def random_forest_sentiment(sentiment_list):
 def strip_tweet(tweet):
     return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])| (\w +:\ / \ / \S +)", " ", tweet).split())
 
+
+def translate_string( text_passed):
+    translate = YandexTranslate('trnsl.1.1.20170321T235434Z.1b909278959d307a.2d404c8d7332660c580835f3922a3f2387864f7d')
+    translated = translate.translate(text_passed, 'en')
+    return translated['text']
+
+
+def insert_sentiment(passed_id, sentiment):
+    sent = sentiment_app(id=passed_id, positive=sentiment[0], neutral=sentiment[1], negative=[2], bot=sentiment[3])
+    sent.save()
 
 
 

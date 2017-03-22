@@ -76,8 +76,18 @@ class friends_app(models.Model):
     target_id = models.IntegerField(default=0, blank=True, null=True)
     bot = models.NullBooleanField(default=None)
 
+
 class followers_app(models.Model):
     source_id = models.IntegerField(default=0, blank=True, null=True)
     target_id = models.IntegerField(default=0, blank=True, null=True)
     bot = models.NullBooleanField(default=None)
+
+
+class sentiment_app(models.Model):
+    id = models.IntegerField(default=0, primary_key=True)
+    positive = models.IntegerField(default=0, blank=True, null=True)
+    neutral = models.IntegerField(default=0, blank=True, null=True)
+    negative = models.IntegerField(default=0, blank=True, null=True)
+    bot = models.NullBooleanField(default=0)
+
 
