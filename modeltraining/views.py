@@ -340,17 +340,15 @@ def sentiment_analyses(all_tweet_entries):
         if tweet[0] != tweet_id:
             if tweet[2]:
                 sentiment[3] = 1
-                #print(tweet[2])
             else:
                 sentiment[3] = 0
-                #print(tweet[2])
 
             #print(batch_update)
 
-            if batch_update != '':
+            #if batch_update != '':
 
-                translated_string = translate_string(batch_update)
-                print("50 in")
+                # translated_string = translate_string(batch_update)
+                # print("50 in")
 
                 #print(translated_string)
 
@@ -361,7 +359,7 @@ def sentiment_analyses(all_tweet_entries):
             batch_update = ''
             tweet_id = tweet[0]
 
-        if count < 100:
+        if count < 1000:
 
             passed_tweet = strip_tweet(tweet[1])
 
@@ -415,7 +413,7 @@ def random_forest_sentiment(sentiment_list):
 
     y = train['bot']
 
-    rf = RandomForestClassifier(n_jobs=2)
+    rf = RandomForestClassifier(n_jobs=2, n_estimators=2000)
 
     rf.fit(train[sentiment_names], y)
 
@@ -427,7 +425,7 @@ def random_forest_sentiment(sentiment_list):
 
     count = 0
     for i in range(0, len(predict)):
-        #print(predict[i], '=', test.iloc[i]['bot'])
+        print(predict[i], '=', test.iloc[i]['bot'])
         if predict[i] == test.iloc[i]['bot']:
             count += 1
 
@@ -437,7 +435,7 @@ def random_forest_sentiment(sentiment_list):
     filename = 'random_forest_sentiment_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
-    #print(accuracy_score(test_y, predict))
+    print(accuracy_score(test_y, predict))
     # confusion matrix
     # oversample data
     return predict
@@ -448,7 +446,17 @@ def strip_tweet(tweet):
 
 
 def translate_string(text_passed):
-    translate = YandexTranslate('trnsl.1.1.20170322T165243Z.cc4baa633b54ee81.0e9596dca723df99fb296e20846bc47b66bb678f')
+    #translate = YandexTranslate('trnsl.1.1.20170322T171859Z.0d7715e4714685b8.06cf2e36ed1bf7f690a849c257ef708f0bc5b9d4')#hanratty.emmet2017
+    #translate = YandexTranslate('trnsl.1.1.20170322T173856Z.03bf0f193d8e4190.59e0b3e30b5055a4cb042664261e0d28dcdb0723')#emmet.hanratty2017
+    # translate = YandexTranslate('trnsl.1.1.20170322T185516Z.decb48e6428fa93b.3a1dd757f63e0c4b010dc8d3badb2d3838c94fe5') # e.hanratty
+    #translate = YandexTranslate('trnsl.1.1.20170322T192725Z.17b6e0c431553d40.92b0884a635191e901f2cb79253239e6688d6f41')#hanratty.e
+    # translate = YandexTranslate('trnsl.1.1.20170322T194833Z.866d740e343c356a.3021ce8a6ba2e802ca0543cc8c42310b91ea6533')# em.hanratty
+    # translate = YandexTranslate('trnsl.1.1.20170322T200249Z.aeb9bc1f1bdb5093.c1d999f94d59f1216bd2a4f8325e846033113c6f')  # e.hanratty2017
+    # translate = YandexTranslate('trnsl.1.1.20170322T200516Z.8a278bab73cd7892.e5cdbb610699b45f69490ba1c04b5bd8d83a0f2d')  # hanratty.emmet2018
+    #translate = YandexTranslate('trnsl.1.1.20170322T222615Z.e2e1e4b1b09df158.e4aef95a40a49b42f48f50857a21d15ec46ba5f1') # emmet.hanratty2018
+    #translate = YandexTranslate('trnsl.1.1.20170322T224837Z.e0c8b2987ddf8ad7.d29c185d939ad5e9aae7354ccd029accdcf7596c')#ya.hanratty
+    translate = YandexTranslate('trnsl.1.1.20170322T231048Z.3de42387c73276fc.21beab3c4a0c5fc05f6f6871e51aeeffe53a2efd')#hanratty.em
+
     translated = translate.translate(text_passed, 'en')
 
     batch_update(translated['text'][0])
@@ -476,22 +484,13 @@ def batch_update(text):
     for tweets in tweets_and_ids:
 
         split_tweet = tweets.split(':::::::')
-        if split_tweet[0] != '':
+        if split_tweet[0] != '' and split_tweet[1] != '':
             #print('id: ', split_tweet[0], 'text: ', split_tweet[1])
             tweet_id = int(split_tweet[0])
             t = tweets_app.objects.get(id=tweet_id)
             t.lang = 'en'
             t.text = split_tweet[1]
             t.save()
-
-
-
-
-
-
-
-
-
 
 
     # values = all_users_entries.values('id', 'name', 'screen_name', 'statuses_count', 'followers_count', 'friends_count', 'favourites_count', 'listed_count', 'created_at',
