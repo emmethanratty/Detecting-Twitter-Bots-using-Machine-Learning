@@ -10,7 +10,8 @@ from textblob import TextBlob
 import re
 from sklearn.metrics import accuracy_score
 from yandex_translate import YandexTranslate
-
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
 
 
 def index(request):
@@ -204,11 +205,7 @@ def support_vector_machines(all_users_entries):
     # userdata_x_train = userdata_x_train[order]
     # userdata_y_train = userdata_y_train[order].astype(np.float)
 
-    from sklearn import svm
-
-    svc = svm.SVC(kernel='linear')
-
-    SVC(cache_size=7000)
+    svc = svm.SVC(kernel='linear', cache_size=7000)
 
     svc.fit(userdata_x_train, userdata_y_train)
 
@@ -300,13 +297,11 @@ def nearest_neighbor(all_users_entries):
     userdata_x_train = userdata_x_train.reshape(len(userdata_x_train), 1)
     userdata_x_test = userdata_x_test.reshape(len(userdata_x_test), 1)
 
-    from sklearn.neighbors import KNeighborsClassifier
-    knn = KNeighborsClassifier()
-    knn.fit(userdata_x_train, userdata_y_train)
-
-    KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
+    knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
                          metric_params=None, n_jobs=1, n_neighbors=5, p=2,
                          weights='uniform')
+    knn.fit(userdata_x_train, userdata_y_train)
+
 
     predict = knn.predict(userdata_x_test)
 
@@ -358,7 +353,7 @@ def sentiment_analyses(all_tweet_entries):
             batch_update = ''
             tweet_id = tweet[0]
 
-        if count < 1001:
+        if count < 1350:
 
             passed_tweet = strip_tweet(tweet[1])
 
@@ -375,8 +370,48 @@ def sentiment_analyses(all_tweet_entries):
                 sentiment[2] += 1
             count += 1
 
-    predict = random_forest_sentiment(sentiment_list)
+    #predict = random_forest_sentiment(sentiment_list)
+    predict = nearest_neighbor_sentiment(sentiment_list)
     print(len(sentiment_list))
+    return predict
+
+
+def nearest_neighbor_sentiment(sentiment_list):
+    sentiment = np.core.records.fromrecords(sentiment_list, names=['positive', 'neutral', 'negative', 'bot'])
+
+    df = pd.DataFrame(sentiment, columns=['positive', 'neutral', 'negative', 'bot'])
+
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
+
+    print(df.head())
+
+    train, test = df[df['to_train'] == True], df[df['to_train'] == False]
+
+    print('Number of observations in the training data:', len(train))
+    print('Number of observations in the test data:', len(test))
+
+    sentiment_names = df.columns[:3]
+
+    y = train['bot']
+
+    knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
+                               metric_params=None, n_jobs=1, n_neighbors=5, p=2,
+                               weights='uniform')
+    knn.fit(train[sentiment_names], y)
+
+    predict = knn.predict(test[sentiment_names])
+
+    test_y = test['bot']
+
+    svc = svm.SVC(cache_size=7000, kernel='linear')
+
+    svc.fit(train[sentiment_names], y)
+
+    predict2 = svc.predict(test[sentiment_names])
+
+    print('Nearest : ', accuracy_score(test_y, predict))
+    print('SVM: ', accuracy_score(test_y, predict2))
+
     return predict
 
 
@@ -411,7 +446,7 @@ def random_forest_sentiment(sentiment_list):
 
     y = train['bot']
 
-    rf = RandomForestClassifier(n_jobs=2, n_estimators=50)
+    rf = RandomForestClassifier(n_jobs=2, n_estimators=10000, max_features="sqrt")
 
     rf.fit(train[sentiment_names], y)
 
@@ -420,12 +455,6 @@ def random_forest_sentiment(sentiment_list):
     test_y = test['bot']
 
     #    predict=rf.predict_proba(test[user_data_names])
-
-    count = 0
-    for i in range(0, len(predict)):
-        print(predict[i], '=', test.iloc[i]['bot'])
-        if predict[i] == test.iloc[i]['bot']:
-            count += 1
 
     # print(len(predict))
     # print((count / len(predict) * 100))
@@ -444,17 +473,17 @@ def strip_tweet(tweet):
 
 
 def translate_string(text_passed):
-    #translate = YandexTranslate('trnsl.1.1.20170322T133238Z.691da702cdb5dbe6.e00850c5473b4c71346d4fcb0f5fff807b8c4f43')#emmet.hanratty
+    translate = YandexTranslate('trnsl.1.1.20170322T133238Z.691da702cdb5dbe6.e00850c5473b4c71346d4fcb0f5fff807b8c4f43')#emmet.hanratty
     #translate = YandexTranslate('trnsl.1.1.20170322T162921Z.24bcd1a440ac1ff1.4ae8817644cf4f0773b5134f2440b780af7044b7')#emmethanratty
     #translate = YandexTranslate('trnsl.1.1.20170322T165243Z.cc4baa633b54ee81.0e9596dca723df99fb296e20846bc47b66bb678f')#hanrattyemmet
     #translate = YandexTranslate('trnsl.1.1.20170322T133603Z.e0a9d5b997f7a2be.c687257bea28bf9d7cf7a7fb9eca4185e7a807a5')#hanratty.emmet
     #translate = YandexTranslate('trnsl.1.1.20170322T171859Z.0d7715e4714685b8.06cf2e36ed1bf7f690a849c257ef708f0bc5b9d4')#hanratty.emmet2017
     #translate = YandexTranslate('trnsl.1.1.20170322T173856Z.03bf0f193d8e4190.59e0b3e30b5055a4cb042664261e0d28dcdb0723')#emmet.hanratty2017
     #translate = YandexTranslate('trnsl.1.1.20170322T185516Z.decb48e6428fa93b.3a1dd757f63e0c4b010dc8d3badb2d3838c94fe5') # e.hanratty
-    translate = YandexTranslate('trnsl.1.1.20170322T192725Z.17b6e0c431553d40.92b0884a635191e901f2cb79253239e6688d6f41')#hanratty.e
-    # translate = YandexTranslate('trnsl.1.1.20170322T194833Z.866d740e343c356a.3021ce8a6ba2e802ca0543cc8c42310b91ea6533')# em.hanratty
-    # translate = YandexTranslate('trnsl.1.1.20170322T200249Z.aeb9bc1f1bdb5093.c1d999f94d59f1216bd2a4f8325e846033113c6f')  # e.hanratty2017
-    # translate = YandexTranslate('trnsl.1.1.20170322T200516Z.8a278bab73cd7892.e5cdbb610699b45f69490ba1c04b5bd8d83a0f2d')  # hanratty.emmet2018
+    #translate = YandexTranslate('trnsl.1.1.20170322T192725Z.17b6e0c431553d40.92b0884a635191e901f2cb79253239e6688d6f41')#hanratty.e
+    #translate = YandexTranslate('trnsl.1.1.20170322T194833Z.866d740e343c356a.3021ce8a6ba2e802ca0543cc8c42310b91ea6533')# em.hanratty
+    #translate = YandexTranslate('trnsl.1.1.20170322T200249Z.aeb9bc1f1bdb5093.c1d999f94d59f1216bd2a4f8325e846033113c6f')  # e.hanratty2017
+    #translate = YandexTranslate('trnsl.1.1.20170322T200516Z.8a278bab73cd7892.e5cdbb610699b45f69490ba1c04b5bd8d83a0f2d')  # hanratty.emmet2018
     #translate = YandexTranslate('trnsl.1.1.20170322T222615Z.e2e1e4b1b09df158.e4aef95a40a49b42f48f50857a21d15ec46ba5f1') # emmet.hanratty2018
     #translate = YandexTranslate('trnsl.1.1.20170322T224837Z.e0c8b2987ddf8ad7.d29c185d939ad5e9aae7354ccd029accdcf7596c')#ya.hanratty
     #translate = YandexTranslate('trnsl.1.1.20170322T231048Z.3de42387c73276fc.21beab3c4a0c5fc05f6f6871e51aeeffe53a2efd')#hanratty.em
