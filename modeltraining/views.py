@@ -1,6 +1,5 @@
 from modeltraining.models import *
 import pandas as pd
-from sklearn.svm import SVC
 import numpy as np
 import pickle
 from sklearn.ensemble import RandomForestClassifier
@@ -12,11 +11,15 @@ from sklearn.metrics import accuracy_score
 from yandex_translate import YandexTranslate
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
+from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
 
 
 def index(request):
     all_users_entries = users_app.objects.all()
     all_tweet_entries = tweets_app.objects.all()
+    bots = tweets_app.objects.all().filter(bot=True)
+    real = tweets_app.objects.all().filter(bot=False)
 
 #    nearest_neighbor(all_users_entries)
 
@@ -25,9 +28,9 @@ def index(request):
 #    predict = support_vector_machines(all_users_entries)
 
     #predict = random_forest(all_users_entries)
-    #predict = random_forest_tweets(all_tweet_entries)
+    predict = random_forest_tweets(bots, real)
 
-    sorted_tweets = sentiment_analyses(all_tweet_entries)
+    #sorted_tweets = sentiment_analyses(all_tweet_entries)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -37,13 +40,33 @@ def index(request):
     #          'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
     #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
-    return HttpResponse(sorted_tweets)
+    return HttpResponse(predict)
 
 
-def random_forest_tweets(all_tweet_entries):
-    tweetdata_x_django = all_tweet_entries.values_list('retweet_count', 'num_hashtags', 'num_urls',
-                                                       'num_mentions')
-    tweetdata_y_django = all_tweet_entries.values_list('bot', flat=True)
+def random_forest_tweets(bots, real):
+
+    upscaled = []
+    upscaled_data = []
+
+    for i in range(0, 5):
+        upscaled.extend(bots)
+
+    print(len(upscaled))
+
+    upscaled_data.extend(upscaled)
+    upscaled_data.extend(real)
+
+    print(len(upscaled_data))
+
+    tweetdata_x_django = []
+    tweetdata_y_django = []
+
+    for tweet in upscaled_data:
+        tweetdata_x_django.append([tweet.retweet_count, tweet.num_hashtags, tweet.num_urls, tweet.num_mentions])
+        tweetdata_y_django.append(tweet.bot)
+
+    # tweetdata_x_django = upscaled_data.values_list('retweet_count', 'num_hashtags', 'num_urls', 'num_mentions')
+    # tweetdata_y_django = upscaled_data.values_list('bot', flat=True)
 
     tweetdata_y_bool = []
 
@@ -73,33 +96,37 @@ def random_forest_tweets(all_tweet_entries):
 
     y = train['Bot']
 
-    rf = RandomForestClassifier(n_jobs=2)
+    rf = RandomForestClassifier(n_jobs=2, n_estimators=1000, max_features="log2")
 
     rf.fit(train[tweet_data_names], y)
 
     predict = rf.predict(test[tweet_data_names])
 
+    print('rf done')
+
     test_y = test['Bot']
 
+    gnb = GaussianNB()
+    gnb.fit(train[tweet_data_names], y)
+
+    predict2 = gnb.predict(test[tweet_data_names])
+    print('neural done')
+
     #    predict=rf.predict_proba(test[user_data_names])
-
-    count = 0
-
-    true = []
-
-    for i in range(0, len(predict)):
-        print(predict[i], '=', test_y.iloc[i])
-        true.extend(test_y.iloc[[i]])
-        if predict[i] == test_y.iloc[[i]]:
-            count += 1
 
     filename = 'random_forest_tweet_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
-    print(len(predict))
-    print((count / len(predict) * 100))
+    filename = 'neural_tweet_model.sav'
+    pickle.dump(gnb, open(filename, 'wb'))
 
-    print(precision_recall_fscore_support(predict, true))
+    # print(len(predict))
+    # print((count / len(predict) * 100))
+
+    # print(precision_recall_fscore_support(predict, true))
+
+    print(accuracy_score(test_y, predict))
+    print(accuracy_score(test_y, predict2))
 
     return predict
 
@@ -353,7 +380,7 @@ def sentiment_analyses(all_tweet_entries):
             batch_update = ''
             tweet_id = tweet[0]
 
-        if count < 1350:
+        if count < 1000:
 
             passed_tweet = strip_tweet(tweet[1])
 
@@ -370,7 +397,7 @@ def sentiment_analyses(all_tweet_entries):
                 sentiment[2] += 1
             count += 1
 
-    #predict = random_forest_sentiment(sentiment_list)
+    predict = random_forest_sentiment(sentiment_list)
     predict = nearest_neighbor_sentiment(sentiment_list)
     print(len(sentiment_list))
     return predict
@@ -381,7 +408,7 @@ def nearest_neighbor_sentiment(sentiment_list):
 
     df = pd.DataFrame(sentiment, columns=['positive', 'neutral', 'negative', 'bot'])
 
-    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .80
 
     print(df.head())
 
@@ -404,13 +431,24 @@ def nearest_neighbor_sentiment(sentiment_list):
     test_y = test['bot']
 
     svc = svm.SVC(cache_size=7000, kernel='linear')
-
     svc.fit(train[sentiment_names], y)
 
     predict2 = svc.predict(test[sentiment_names])
 
+    clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
+    clf.fit(train[sentiment_names], y)
+
+    predict3 = clf.predict(test[sentiment_names])
+
+    gnb = GaussianNB()
+    gnb.fit(train[sentiment_names], y)
+
+    predict4 = gnb.predict(test[sentiment_names])
+
     print('Nearest : ', accuracy_score(test_y, predict))
     print('SVM: ', accuracy_score(test_y, predict2))
+    print('Neural: ', accuracy_score(test_y, predict3))
+    print('GNB: ', accuracy_score(test_y, predict4))
 
     return predict
 
@@ -462,7 +500,7 @@ def random_forest_sentiment(sentiment_list):
     filename = 'random_forest_sentiment_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
-    print(accuracy_score(test_y, predict))
+    print('Random: ', accuracy_score(test_y, predict))
     # confusion matrix
     # oversample data
     return predict

@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect
+from textblob import TextBlob
+
 from webapp.models import *
 from django.http import HttpResponse
 import pickle
@@ -61,7 +63,6 @@ def callback(request):
 
             user_id, lang = insert_user_data(user)
 
-            balh = rf_user_prediction(user_id)
 
             tweets = []
 
@@ -88,8 +89,11 @@ def callback(request):
 
                 insert_tweet_data(tweets, lang, user_id)
 
+            balh = rf_user_prediction(user_id)
+
+
                 #return render(request, "webapp/prediction.html")
-            return HttpResponse("worked")
+            return HttpResponse(balh)
         except tweepy.TweepError:
             return HttpResponse("didn't work")
     else:
@@ -133,9 +137,21 @@ def insert_tweet_data(tweets, lang, user_id):
 
 def rf_user_prediction(user_id):
     rf_user_filename = 'random_forest_user_model.sav'
+    rf_sentiment_filename = 'random_forest_sentiment_model.sav'
     rf_user_model = pickle.load(open(rf_user_filename, 'rb'))
+    rf_sentiment_model = pickle.load(open(rf_sentiment_filename, 'rb'))
 
     user = users_app.objects.all().filter(id__contains=user_id)
+    tweets = tweets_app.objects.all().filter(user_id__contains=user_id)
+
+    # print(tweets.values_list())
+
+    sentiment = sentiment_analyses(tweets)
+
+    # sentiment = np.core.records.fromrecords(sentiment_list, names=['positive', 'neutral', 'negative'])
+    #
+    # df_sentiment = pd.DataFrame(sentiment, columns=['positive', 'neutral', 'negative'])
+
 
     userdata_x_django = user.values_list('statuses_count', 'followers_count', 'friends_count', 'favourites_count')
 
@@ -144,16 +160,77 @@ def rf_user_prediction(user_id):
 
     df = pd.DataFrame(userdata_x, columns=['Statuses Count', 'Followers_Count', 'Friends Count', 'Favourite Count'])
 
+    predict_sentiment = rf_sentiment_model.predict_proba(sentiment)
     predict = rf_user_model.predict(df)
+
+    predict2 = tweet_analyses(tweets)
 
     print(df)
     print(predict)
+    print(predict_sentiment)
 
-    return rf_user_model.predict_proba(df)
+    return predict2
 
 
 def strip_non_ascii(passed_string):
     # Returns the string without non ASCII characters
     stripped = (c for c in passed_string if 0 < ord(c) < 127)
     return ''.join(stripped)
+
+
+def sentiment_analyses(all_tweet_entries):
+    tweets = all_tweet_entries.values_list('user_id', 'text', 'lang', 'id')
+
+    sentiment = [0, 0, 0]
+    batch_update = ''
+
+    for tweet in tweets:
+
+        passed_tweet = strip_non_ascii(tweet[1])
+
+        if tweet[2] != 'en':
+            batch_update += str(tweet[3]) + ':::;:::' + passed_tweet + ';;;:;;;'
+
+        tweet_sentiment = get_sentiment(tweet[1])
+
+        if tweet_sentiment == 'positive':
+            sentiment[0] += 1
+        elif tweet_sentiment == 'neutral':
+            sentiment[1] += 1
+        elif tweet_sentiment == 'negative':
+            sentiment[2] += 1
+
+    print(sentiment)
+    return sentiment
+
+
+def get_sentiment(text):
+    tweet_sentiment = TextBlob(text)
+
+    if tweet_sentiment.sentiment.polarity > 0:
+        return 'positive'
+    elif tweet_sentiment.sentiment.polarity == 0:
+        return 'neutral'
+    else:
+        return 'negative'
+
+
+def tweet_analyses(all_tweet_entries):
+
+    rf_tweet_filename = 'random_forest_tweet_model.sav'
+
+    rf_tweets_model = pickle.load(open(rf_tweet_filename, 'rb'))
+
+    tweets = all_tweet_entries.values_list('retweet_count', 'num_hashtags', 'num_urls', 'num_mentions')
+
+    predict = rf_tweets_model.predict(tweets)
+
+    count = 0
+
+    for bot in predict:
+        if bot == 1:
+            count += 1
+
+    print('Percentage: ', count/len(predict)*100)
+    return predict
 
