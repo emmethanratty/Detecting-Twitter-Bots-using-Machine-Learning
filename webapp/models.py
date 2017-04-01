@@ -56,3 +56,13 @@ class tweets_app(models.Model):
     lang = models.CharField(max_length=200, blank=True, null=True)
     bot = models.NullBooleanField(default=None)
 
+
+class followers_app(models.Model):
+    following_id = models.BigIntegerField(default=0, blank=True, null=True)
+    id = models.BigIntegerField(default=0, primary_key=True)
+    name = models.CharField(max_length=200, blank=True, null=True)
+    screen_name = models.CharField(max_length=200, blank=True, null=True)
+    statuses_count = models.IntegerField(default=0, blank=True, null=True)
+    followers_count = models.IntegerField(default=0, blank=True, null=True)
+    friends_count = models.IntegerField(default=0, blank=True, null=True)
+    favourites_count = models.IntegerField(default=0, blank=True, null=True)

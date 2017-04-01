@@ -13,6 +13,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
+import datetime
 
 
 def index(request):
@@ -28,9 +29,11 @@ def index(request):
 #    predict = support_vector_machines(all_users_entries)
 
     #predict = random_forest(all_users_entries)
-    predict = random_forest_tweets(bots, real)
+    #predict = random_forest_tweets(bots, real)
 
     #sorted_tweets = sentiment_analyses(all_tweet_entries)
+
+    timing = time_analyses(all_tweet_entries)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -40,7 +43,7 @@ def index(request):
     #          'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
     #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
-    return HttpResponse(predict)
+    return HttpResponse(timing)
 
 
 def random_forest_tweets(bots, real):
@@ -483,14 +486,12 @@ def random_forest_sentiment(sentiment_list):
     sentiment_names = df.columns[:3]
 
     y = train['bot']
+    test_y = test['bot']
 
     rf = RandomForestClassifier(n_jobs=2, n_estimators=10000, max_features="sqrt")
-
     rf.fit(train[sentiment_names], y)
-
     predict = rf.predict(test[sentiment_names])
 
-    test_y = test['bot']
 
     #    predict=rf.predict_proba(test[user_data_names])
 
@@ -567,6 +568,165 @@ def batch_update(text):
             t.save()
 
     print("50 in")
+
+
+
+
+def time_analyses(all_tweet_entries):
+    tweets = all_tweet_entries.values_list('user_id', 'created_at', 'bot')
+
+    timing_array = []
+    tweet_timing = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    count = 0
+    previous_day = ['', '', '']
+
+    sorted_tweets = sorted(tweets, key=lambda tw: tw[0])
+    tweet_id = sorted_tweets[0][0]
+
+    for tweet in sorted_tweets:
+        if tweet[0] != tweet_id:
+            if tweet[2]:
+                tweet_timing[9] = 1
+            else:
+                tweet_timing[9] = 0
+
+            timing_array.append(tweet_timing)
+
+            tweet_timing = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            tweet_id = tweet[0]
+            count = 0
+            previous_day = ['', '', '']
+
+        #print(tweet[1], tweet[0], tweet[2])
+
+        if count <= 1000:
+            full_date = tweet[1]
+
+            split_date = full_date.split(' ')
+
+            day = split_date[0]
+            month = split_date[1]
+            day_num = split_date[2]
+            time = split_date[3]
+            year = split_date[5]
+
+
+            datetime_object = datetime.datetime.strptime(time, "%H:%M:%S")
+
+            # print(day, month, datetime_object)
+
+            if datetime.time(0, 0, 0) <= datetime_object.time() <= datetime.time(2, 59, 0):
+                tweet_timing[0] += 1
+                # print(time)
+            elif datetime.time(3, 0, 0) <= datetime_object.time() <= datetime.time(5, 59, 0):
+                tweet_timing[1] += 1
+            elif datetime.time(6, 0, 0) <= datetime_object.time() <= datetime.time(8, 59, 0):
+                tweet_timing[2] += 1
+            elif datetime.time(9, 0, 0) <= datetime_object.time() <= datetime.time(11, 59, 0):
+                tweet_timing[3] += 1
+            elif datetime.time(12, 0, 0) <= datetime_object.time() <= datetime.time(14, 59, 0):
+                tweet_timing[4] += 1
+            elif datetime.time(15, 0, 0) <= datetime_object.time() <= datetime.time(17, 59, 0):
+                tweet_timing[5] += 1
+            elif datetime.time(18, 0, 0) <= datetime_object.time() <= datetime.time(20, 59, 0):
+                tweet_timing[6] += 1
+            elif datetime.time(21, 0, 0) <= datetime_object.time() <= datetime.time(23, 59, 0):
+                tweet_timing[7] += 1
+
+            if month == previous_day[0] and day_num == previous_day[1] and year == previous_day[2]:
+                tweet_timing[8] += 1
+
+            previous_day[0] = month
+            previous_day[1] = day_num
+            previous_day[2] = year
+            count += 1
+
+
+    predict = timing_model_creation(timing_array)
+    return predict
+
+
+def timing_model_creation(timing_array):
+
+    bots = []
+    real = []
+
+    scaled = []
+    full_scaled = []
+
+    for user in timing_array:
+        if user[9] == 1:
+            bots.append(user)
+        else:
+            real.append(user)
+
+    for i in range(0, 2):
+        scaled.extend(real)
+
+    full_scaled.extend(bots)
+    full_scaled.extend(scaled)
+
+    timing = np.core.records.fromrecords(full_scaled, names=['0-3', '3-6', '6-9', '9-12', '12-15', '15-18', '18-21',
+                                                              '21-24', 'same day', 'bot'])
+
+    df = pd.DataFrame(timing, columns=['0-3', '3-6', '6-9', '9-12', '12-15', '15-18', '18-21', '21-24', 'same day',
+                                       'bot'])
+
+    df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
+
+    print(df.head())
+
+    train, test = df[df['to_train'] == True], df[df['to_train'] == False]
+
+    print('Number of observations in the training data:', len(train))
+    print('Number of observations in the test data:', len(test))
+
+    timing_names = df.columns[:8]
+
+    y = train['bot']
+    test_y = test['bot']
+
+    rf = RandomForestClassifier(n_jobs=-1, n_estimators=10000, max_features=.2, min_samples_leaf=100, oob_score=True, random_state=50)
+    rf.fit(train[timing_names], y)
+    predict = rf.predict(test[timing_names])
+
+    knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski', metric_params=None, n_jobs=1,  n_neighbors=5, p=2, weights='uniform')
+    knn.fit(train[timing_names], y)
+    predict2 = knn.predict(test[timing_names])
+
+    svc = svm.SVC(cache_size=7000, kernel='linear')
+    svc.fit(train[timing_names], y)
+    predict3 = svc.predict(test[timing_names])
+
+    clf = MLPClassifier()
+    clf.fit(train[timing_names], y)
+    predict4 = clf.predict(test[timing_names])
+
+    gnb = GaussianNB()
+    gnb.fit(train[timing_names], y)
+    predict5 = gnb.predict(test[timing_names])
+
+
+    #    predict=rf.predict_proba(test[user_data_names])
+
+    # print(len(predict))
+    # print((count / len(predict) * 100))
+
+    filename = 'random_forest_timing_model.sav'
+    pickle.dump(rf, open(filename, 'wb'))
+
+    print('rf: ', accuracy_score(test_y, predict))
+    print('knn: ', accuracy_score(test_y, predict2))
+    print('svm: ', accuracy_score(test_y, predict3))
+    print('clf: ', accuracy_score(test_y, predict4))
+    print('gnb: ', accuracy_score(test_y, predict5))
+    # confusion matrix
+    # oversample data
+    return predict, predict2, predict3, predict4, predict5
+
+
+
+
 
             # values = all_users_entries.values('id', 'name', 'screen_name', 'statuses_count', 'followers_count', 'friends_count', 'favourites_count', 'listed_count', 'created_at',
     #                                   'url', 'lang', 'time_zone', 'location', 'default_profile', 'default_profile_image', 'geo_enabled', 'profile_image_url',
