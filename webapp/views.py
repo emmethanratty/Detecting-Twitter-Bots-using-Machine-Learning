@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, render_to_response
 from textblob import TextBlob
 from webapp.models import *
 from django.http import HttpResponse
@@ -108,11 +108,14 @@ def callback(request):
 
                 insert_tweet_data(tweets, lang, user_id)
 
-            balh = rf_user_prediction(user_id, handle)
+            prediction = rf_user_prediction(user_id, handle)
 
+            context = {
+                'prediction': prediction
+            }
 
-                #return render(request, "webapp/prediction.html")
-            return HttpResponse(balh)
+            # return render(request, "webapp/prediction.html")
+            return render_to_response('webapp/prediction.html', context)
         except tweepy.TweepError:
             return HttpResponse("didn't work")
     else:
