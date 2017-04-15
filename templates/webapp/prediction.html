@@ -5,47 +5,328 @@
     <title>BotYou</title>
 
     {% load staticfiles %}
+    {% load static %}
 {#    <link rel="stylesheet" href="https://www.w3schools.com/w3css/3/w3.css">#}
 {#    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">#}
 {#    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">#}
 {#    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">#}
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="{% static 'webapp/css/style.css' %}" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <style>
+        #wrapper {
+          padding-left: 250px;
+          transition: all 0.4s ease 0s;
+          margin-top: 40px;
+        }
+
+        #sidebar-wrapper {
+          margin-left: -250px;
+          left: 250px;
+          width: 250px;
+          background: #000;
+          position: fixed;
+          height: 100%;
+          overflow-y: auto;
+          z-index: 1000;
+          transition: all 0.4s ease 0s;
+        }
+
+        #wrapper.active {
+          padding-left: 0;
+        }
+
+        #wrapper.active #sidebar-wrapper {
+          left: 0;
+        }
+
+        #page-content-wrapper {
+          width: 100%;
+        }
+
+
+
+        .sidebar-nav {
+          position: absolute;
+          top: 0;
+          width: 250px;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .sidebar-nav li {
+          line-height: 40px;
+          text-indent: 20px;
+        }
+
+        .sidebar-nav li a {
+          color: #999999;
+          display: block;
+          text-decoration: none;
+          padding-left: 60px;
+        }
+
+        .sidebar-nav li a span:before {
+          position: absolute;
+          left: 0;
+          color: #41484c;
+          text-align: center;
+          width: 20px;
+          line-height: 18px;
+        }
+
+        .sidebar-nav li a:hover,
+        .sidebar-nav li.active {
+          color: #fff;
+          background: rgba(255,255,255,0.2);
+          text-decoration: none;
+        }
+
+        .sidebar-nav li a:active,
+        .sidebar-nav li a:focus {
+          text-decoration: none;
+        }
+
+        .sidebar-nav > .sidebar-brand {
+          height: 65px;
+          line-height: 60px;
+          font-size: 18px;
+        }
+
+        .sidebar-nav > .sidebar-brand a {
+          color: #999999;
+        }
+
+        .sidebar-nav > .sidebar-brand a:hover {
+          color: #fff;
+          background: none;
+        }
+
+        .content-header h1 {
+          margin: 0;
+          margin-left: 20px;
+          line-height: 65px;
+          display: inline-block;
+        }
+
+        .inset {
+          padding: 20px;
+        }
+
+        @media (max-width:767px) {
+
+            #wrapper {
+                padding-left: 0;
+            }
+
+            #sidebar-wrapper {
+                left: 0;
+            }
+
+            #wrapper.active {
+                position: relative;
+                left: 250px;
+            }
+
+            #wrapper.active #sidebar-wrapper {
+                left: 250px;
+                width: 250px;
+                transition: all 0.4s ease 0s;
+            }
+
+            .inset {
+                padding: 15px;
+            }
+        }
+    </style>
 
 </head>
 
-<body class="w3-light-grey" background="{% static 'webapp/images/ep_naturalwhite.png' %}">
-{% load staticfiles %}
-    <nav class="navbar navbar-inverse">
-      <div class="container-fluid">
-        <!-- Brand and toggle get grouped for better mobile display -->
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{% url 'webapp:index' %}">BotYou</a>
+<body background="{% static 'webapp/images/ep_naturalwhite.png' %}">
+    <script src="{% static 'webapp/javascript/prediction.js' %}"></script>
+
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+          <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="{% url 'webapp:index' %}">BotYou</a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li class="active"><a href="{% url 'webapp:index' %}">Test User<span class="sr-only">(current)</span></a></li>
+                <li><a href="{% url 'webapp:followers'%}">Test Followers</a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+
+<div id="wrapper">
+
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper">
+            <nav id="spy">
+                <ul class="sidebar-nav nav">
+                    <li class="sidebar-brand">
+                        <a href="#home"><span class="fa fa-home solo">Home</span></a>
+                    </li>
+                    <li>
+                        <a href="#anch1" data-scroll>
+                            <span class="fa fa-wrench solo">Prediction</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#anch2" data-scroll>
+                            <span class="fa fa-user solo">User Analyses</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#anch3" data-scroll>
+                            <span class="fa fa-twitter solo">Tweet Analyses</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#anch4" data-scroll>
+                            <span class="fa fa-thumbs-up solo">Sentiment</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#anch5" data-scroll>
+                            <span class="fa fa-dashboard solo">Time Analyses</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
 
-        <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="{% url 'webapp:index' %}">Test User<span class="sr-only">(current)</span></a></li>
-            <li><a href="{% url 'webapp:followers'%}">Test Followers</a></li>
-          </ul>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
-    </nav>
+        <!-- Page content -->
+        <div id="page-content-wrapper">
 
-    {{ prediction }}
 
-    <div class="progress">
-      <div class="progress-bar" role="progressbar" aria-valuenow="{{ prediction }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ prediction }}%;">
-          {{ prediction }}%
-      </div>
-    </div>
+            <div class="page-content inset" data-spy="scroll" data-target="#spy">
+                <div class="row" id="home">
+
+                        <div class="jumbotron text-center" >
+                            <h1>Users Prediction</h1>
+                            <p>Below is the prediction for the twitter user {{ handle }}</p>
+                        </div>
+
+                </div>
+                <div class="row" id="anch1">
+                    <div class="col-md-12 well">
+                        <legend>Prediction</legend>
+                        <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
+                    </div>
+                    <div class="col-md-12 well" id="anch2">
+                        <legend>User Analyses</legend>
+                        <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
+                   </div>
+                    <div class="col-md-12 well" id="anch3">
+                        <legend id="anch3"></legend>
+                        <legend>Tweet Analyses</legend>
+                        <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
+                   </div>
+                    <div class="col-md-12 well" id="anch4">
+                        <legend >Sentiment</legend>
+                        <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
+                   </div>
+                   <div class="col-md-12 well" id="anch5">
+                       <legend>Time Analyses</legend>
+                       <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
+                   </div>
+                </div>
+
+        </div>
+
+        </div>
+</div>
+
+<script>
+        $("#menu-toggle").click(function(e) {
+        e.preventDefault();
+        $("#wrapper").toggleClass("active");
+        });
+
+        /*Scroll Spy*/
+        $('body').scrollspy({ target: '#spy', offset:80});
+
+        /*Smooth link animation*/
+        $('a[href*=#]:not([href=#])').click(function() {
+            if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') || location.hostname == this.hostname) {
+
+                var target = $(this.hash);
+                target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+                if (target.length) {
+                    $('html,body').animate({
+                        scrollTop: target.offset().top
+                    }, 1000);
+                    return false;
+                }
+            }
+        });
+</script>
 
 </body>
 </html>
+

@@ -7,7 +7,7 @@ import numpy as np
 import tweepy
 import pandas as pd
 import datetime
-
+import math
 
 consumer_token = "zwGPR1XN0wtllYEdbZyhKwJzX"
 consumer_secret = "Ob5zlQFPl0eUUHoqj9ZUrYxWM9dFgrxE3Oz17ljqtvV4TuQwMR"
@@ -111,6 +111,7 @@ def callback(request):
 
             context = {
                 'prediction': prediction,
+                'handle': handle
             }
 
             # return render(request, "webapp/prediction.html")
@@ -207,11 +208,14 @@ def rf_user_prediction(user_id, handle):
     timing_percentage = predict_timing[0][1] * 100
     sentiment_percentage = predict_sentiment[0][1] * 100
 
-    overall_prediction = (tweet_predict_percentage + user_percentage + timing_percentage + sentiment_percentage) / 4
+    print( user_percentage, timing_percentage, sentiment_percentage, tweet_predict_percentage )
+
+    overall_prediction = ((user_percentage * 60) + (tweet_predict_percentage * 20) + (timing_percentage * 10) +
+                          (sentiment_percentage * 10)) / 100
 
     print('Overall Percentage: ', overall_prediction)
 
-    return int(overall_prediction)
+    return int(round(overall_prediction))
 
 
 def strip_non_ascii(passed_string):
