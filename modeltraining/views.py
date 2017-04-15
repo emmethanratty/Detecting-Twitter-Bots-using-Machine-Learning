@@ -570,8 +570,6 @@ def batch_update(text):
     print("50 in")
 
 
-
-
 def time_analyses(all_tweet_entries):
     tweets = all_tweet_entries.values_list('user_id', 'created_at', 'bot')
 
@@ -705,12 +703,6 @@ def timing_model_creation(timing_array):
     gnb = GaussianNB()
     gnb.fit(train[timing_names], y)
     predict5 = gnb.predict(test[timing_names])
-
-
-    #    predict=rf.predict_proba(test[user_data_names])
-
-    # print(len(predict))
-    # print((count / len(predict) * 100))
 
     filename = 'random_forest_timing_model.sav'
     pickle.dump(rf, open(filename, 'wb'))

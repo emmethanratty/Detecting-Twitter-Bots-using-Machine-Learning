@@ -10,23 +10,40 @@
     <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
 
 </head>
 
-<body class="w3-light-grey">
+<body class="w3-light-grey" background="{% static 'webapp/images/ep_naturalwhite.png' %}">
+    <nav class="navbar navbar-inverse">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="{% url 'webapp:index' %}">BotYou</a>
+        </div>
 
-    <div class="w3-top">
-      <div class="w3-bar w3-theme w3-top w3-left-align w3-large">
-        <a class="w3-bar-item w3-button w3-right w3-hide-large w3-hover-white w3-large w3-theme-l1" href="javascript:void(0)" onclick="w3_open()"><i class="fa fa-bars"></i></a>
-        <a href="{% url 'webapp:index' %}" class="w3-bar-item w3-button w3-theme-l1">BotYou</a>
-        <a href="{% url 'webapp:index' %}" class="w3-bar-item w3-button w3-theme-l1">Test User</a>
-        <a href="{% url 'webapp:followers' %}" class="w3-bar-item w3-button w3-theme-l1">Test Users Followers</a>
-      </div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="{% url 'webapp:index' %}">Test User<span class="sr-only">(current)</span></a></li>
+            <li><a href="{% url 'webapp:followers'%}">Test Followers</a></li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+
+    <div class="page-header">
+      <h1 class="text-center">User Prediction</h1>
     </div>
 
-
-    <header class="w3-display-container w3-content" style="max-width:1500px;">
-        <img class="w3-image" src="http://cdn.wonderfulengineering.com/wp-content/uploads/2014/03/high-resolution-wallpapers-12.jpg" style="min-width:1000px" width="1500" height="800">
+{#        <img class="w3-image" src="http://cdn.wonderfulengineering.com/wp-content/uploads/2014/03/high-resolution-wallpapers-12.jpg" style="min-width:1000px" width="1500" height="800">#}
         <div class="w3-display-middle w3-padding w3-col l6 m8">
             <div class="w3-container w3-blue">
               <h2><i class="fa fa-twitter w3-margin-right"></i>Please Enter Twitter Handle</h2>
@@ -44,7 +61,6 @@
               </form>
             </div>
         </div>
-    </header>
 
 </body>
 </html>

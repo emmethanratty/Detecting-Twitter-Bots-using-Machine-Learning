@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, render_to_response
+from django.shortcuts import render, redirect
 from textblob import TextBlob
 from webapp.models import *
 from django.http import HttpResponse
@@ -7,12 +7,10 @@ import numpy as np
 import tweepy
 import pandas as pd
 import datetime
-from multiprocessing import Pool, Lock
-from functools import partial
-import os
 
-consumer_token = "HMif7XOaMbrK8iBnZlYDwtnPa"
-consumer_secret = "jZR8th1C8Hj2YoLDVNnbMalpDUsEsOEzcDjSIhW70UF1FQ4mhf"
+
+consumer_token = "zwGPR1XN0wtllYEdbZyhKwJzX"
+consumer_secret = "Ob5zlQFPl0eUUHoqj9ZUrYxWM9dFgrxE3Oz17ljqtvV4TuQwMR"
 
 
 def index(request):
@@ -29,17 +27,18 @@ def auth(request):
         handle = request.POST["TwitterHandle"]
         request.session["TwitterHandle"] = handle
 
-    auth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/callback')
+    oauth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/callback')
 
     try:
-        redirect_url = auth.get_authorization_url()
+        redirect_url = oauth.get_authorization_url()
+
+        request.session['request_token'] = oauth.request_token
+
+        return redirect(redirect_url)
+
     except tweepy.TweepError:
-        print
-        'Error! Failed to get request token.'
-
-    request.session['request_token'] = auth .request_token
-
-    return redirect(redirect_url)
+        print('Error! Failed to get request token.')
+        return HttpResponse('Didnt work')
 
 
 def auth_followers(request):
@@ -48,17 +47,17 @@ def auth_followers(request):
         handle = request.POST["TwitterHandle_f"]
         request.session["TwitterHandle_f"] = handle
 
-    auth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/followers_callback')#http://192.168.1.12/webapp/followers_callback
+    oauth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/followers_callback')#http://192.168.1.12/webapp/followers_callback
 
     try:
-        redirect_url = auth.get_authorization_url()
+        redirect_url = oauth.get_authorization_url()
+
+        request.session['request_token'] = oauth.request_token
+
+        return redirect(redirect_url)
     except tweepy.TweepError:
-        print
-        'Error! Failed to get request token.'
-
-    request.session['request_token'] = auth .request_token
-
-    return redirect(redirect_url)
+        print('Error! Failed to get request token.')
+        return HttpResponse('Didnt work')
 
 
 def callback(request):
@@ -111,11 +110,11 @@ def callback(request):
             prediction = rf_user_prediction(user_id, handle)
 
             context = {
-                'prediction': prediction
+                'prediction': prediction,
             }
 
             # return render(request, "webapp/prediction.html")
-            return render_to_response('webapp/prediction.html', context)
+            return render(request, 'webapp/prediction.html', context)
         except tweepy.TweepError:
             return HttpResponse("didn't work")
     else:
@@ -197,7 +196,6 @@ def rf_user_prediction(user_id, handle):
     predict_sentiment = rf_sentiment_model.predict_proba(sentiment)
     predict_user = rf_user_model.predict_proba(df)
     predict_timing = rf_timing_model.predict_proba(timing)
-
     tweet_predict_percentage = tweet_analyses(tweets)
 
     print('Tweet Percentage: ', tweet_predict_percentage)
@@ -205,7 +203,15 @@ def rf_user_prediction(user_id, handle):
     print('Sentiment Predict: ', predict_sentiment)
     print('Timing Predict: ', predict_timing)
 
-    return handle
+    user_percentage = predict_user[0][1] * 100
+    timing_percentage = predict_timing[0][1] * 100
+    sentiment_percentage = predict_sentiment[0][1] * 100
+
+    overall_prediction = (tweet_predict_percentage + user_percentage + timing_percentage + sentiment_percentage) / 4
+
+    print('Overall Percentage: ', overall_prediction)
+
+    return int(overall_prediction)
 
 
 def strip_non_ascii(passed_string):

@@ -5,11 +5,13 @@
       <w>dataset</w>
       <w>hashtags</w>
       <w>modeltraining</w>
+      <w>naturalwhite</w>
       <w>regr</w>
       <w>retweet</w>
       <w>tweetdata</w>
       <w>userdata</w>
       <w>webapp</w>
+      <w>widthratio</w>
     </words>
   </dictionary>
 </component>
