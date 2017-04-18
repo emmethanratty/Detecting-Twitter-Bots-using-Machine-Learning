@@ -5,7 +5,6 @@ from . import views
 app_name = 'webapp'
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^home/', views.home, name='home'),
     url(r'^auth/', views.auth, name='auth'),
     url(r'^callback/', views.callback, name='callback'),
     url(r'^followers/', views.followers, name='followers'),

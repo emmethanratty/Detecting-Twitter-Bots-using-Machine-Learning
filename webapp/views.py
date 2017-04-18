@@ -1,34 +1,34 @@
 from django.shortcuts import render, redirect
 from textblob import TextBlob
 from webapp.models import *
-from django.http import HttpResponse
 import pickle
 import numpy as np
 import tweepy
 import pandas as pd
 import datetime
-import math
 
+# consumer key and secret to access the twitter api
 consumer_token = "zwGPR1XN0wtllYEdbZyhKwJzX"
 consumer_secret = "Ob5zlQFPl0eUUHoqj9ZUrYxWM9dFgrxE3Oz17ljqtvV4TuQwMR"
 
 
+# function to go onto the home page
 def index(request):
     return render(request, 'webapp/index.html')
 
 
-def home(request):
-    return HttpResponse("Home Page")
-
-
+# function to authenticate the request to access the twitter api
 def auth(request):
 
+    # checks to make sure that the method of the request has been a post method and gets the twitter handle of user
     if request.method == "POST":
         handle = request.POST["TwitterHandle"]
         request.session["TwitterHandle"] = handle
 
+    # creating the oauth handler and specifying the callback request
     oauth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/callback')
 
+    # try except block to validate the redirect api for the oauth handler
     try:
         redirect_url = oauth.get_authorization_url()
 
@@ -36,37 +36,50 @@ def auth(request):
 
         return redirect(redirect_url)
 
+    # except in the case of auth no validated
     except tweepy.TweepError:
+        context = {
+            'problem': 'Verifier for twitter error'
+        }
         print('Error! Failed to get request token.')
-        return HttpResponse('Didnt work')
+        return render(request, 'webapp/error.html', context)
 
 
+# function for authenticating the request to get a users twitter followers with access to the api
 def auth_followers(request):
 
+    # checks to make sure that the method of the request has been a post method and gets the twitter handle of user
     if request.method == "POST":
         handle = request.POST["TwitterHandle_f"]
         request.session["TwitterHandle_f"] = handle
 
+    # creating the oauth handler and specifying the callback request
     oauth = tweepy.OAuthHandler(consumer_token, consumer_secret, 'http://localhost/webapp/followers_callback')#http://192.168.1.12/webapp/followers_callback
 
+    # try except block to validate the redirect api for the oauth handler
     try:
         redirect_url = oauth.get_authorization_url()
 
         request.session['request_token'] = oauth.request_token
 
         return redirect(redirect_url)
+
+    # except in the case of auth no validated
     except tweepy.TweepError:
+        context = {
+            'problem': 'Verifier for twitter error'
+        }
         print('Error! Failed to get request token.')
-        return HttpResponse('Didnt work')
+        return render(request, 'webapp/error.html', context)
 
 
+# function to accept the callback from the oauth authentication for checking a user
 def callback(request):
 
+    # check to make sure the handle has been successfully stored in the session
     if 'TwitterHandle' in request.session:
+        # getting the oauth and handle
         handle = request.session['TwitterHandle']
-
-        #print(rf_user_model)
-
         verifier = request.GET.get('oauth_verifier')
 
         auth = tweepy.OAuthHandler(consumer_token, consumer_secret)
@@ -74,6 +87,7 @@ def callback(request):
         # request.session.delete('request_token')
         auth.request_token = token
 
+        # try except block to validate the oauth
         try:
             auth.get_access_token(verifier)
             api = tweepy.API(auth)
@@ -86,6 +100,7 @@ def callback(request):
 
             tweets_200 = api.user_timeline(screen_name=handle, count=200)
 
+            # check to make sure that some tweets have been successfully returned from the api
             if tweets_200:
 
                 print(len(tweets_200))
@@ -94,6 +109,7 @@ def callback(request):
 
                 realign = tweets[-1].id - 1
 
+                # for loop to get 1000 of the most recent tweets from the user
                 for i in range(0, 4):
                     tweets_200 = api.user_timeline(screen_name=handle, count=200, max_id=realign)
 
@@ -107,21 +123,32 @@ def callback(request):
 
                 insert_tweet_data(tweets, lang, user_id)
 
+            # calling the prediction class to check the user
             prediction = rf_user_prediction(user_id, handle)
 
+            # this is the context to return variables to the html UI
             context = {
                 'prediction': prediction,
                 'handle': handle
             }
 
-            # return render(request, "webapp/prediction.html")
+            # renders the web page template for user prediction
             return render(request, 'webapp/prediction.html', context)
         except tweepy.TweepError:
-            return HttpResponse("didn't work")
+            context = {
+                'problem': 'Verifier for twitter error'
+            }
+            return render(request, 'webapp/error.html', context)
+
+    # check if there is no handle in the session
     else:
-        return "didn't work cause"
+        context = {
+            'problem': 'Twitter Handle not passed in'
+        }
+        return render(request, 'webapp/error.html', context)
 
 
+# function to insert the user data into the web app database so that the prediction can access the data
 def insert_user_data(user_data):
     user = users_app(id=user_data.id, name=strip_non_ascii(user_data.name), screen_name=user_data.screen_name,
                      statuses_count=user_data.statuses_count, followers_count=user_data.followers_count,
@@ -143,6 +170,7 @@ def insert_user_data(user_data):
     return user.id, user.lang
 
 
+# function to insert users followers data into the web app database so the prediction can access the data
 def insert_followers_data(main_user_id, user_data):
     user = followers_app(following_id=main_user_id, id=user_data.id, name=strip_non_ascii(user_data.name),
                          screen_name=user_data.screen_name, statuses_count=user_data.statuses_count,
@@ -152,6 +180,7 @@ def insert_followers_data(main_user_id, user_data):
     user.save()
 
 
+# function to insert the users tweet data into th web app database so the prediction can access the data
 def insert_tweet_data(tweets, lang, user_id):
     for tweet in tweets:
         utf = strip_non_ascii(tweet.text)
@@ -166,6 +195,8 @@ def insert_tweet_data(tweets, lang, user_id):
         tweet_data.save()
 
 
+# function that takes in the user id and handle as passed arguments
+# the function then loads the prediction models and performs the necessary prediction on the data
 def rf_user_prediction(user_id, handle):
     rf_user_filename = 'random_forest_user_model.sav'
     rf_sentiment_filename = 'random_forest_sentiment_model.sav'
@@ -174,19 +205,15 @@ def rf_user_prediction(user_id, handle):
     rf_sentiment_model = pickle.load(open(rf_sentiment_filename, 'rb'))
     rf_timing_model = pickle.load(open(rf_timing_filename, 'rb'))
 
+    # returns all the data from the web app database about the user
     user = users_app.objects.all().filter(id__contains=user_id)
     tweets = tweets_app.objects.all().filter(user_id__contains=user_id)
 
-    # print(tweets.values_list())
-
+    # call to sentiment and time analyses to perform the predictions
     sentiment = sentiment_analyses(tweets)
     timing = timing_analyses(tweets)
 
-    # sentiment = np.core.records.fromrecords(sentiment_list, names=['positive', 'neutral', 'negative'])
-    #
-    # df_sentiment = pd.DataFrame(sentiment, columns=['positive', 'neutral', 'negative'])
-
-
+    # preparing the user data to be used in the prediction
     userdata_x_django = user.values_list('statuses_count', 'followers_count', 'friends_count', 'favourites_count')
 
     userdata_x = np.core.records.fromrecords(userdata_x_django, names=['Statuses Count', 'Followers_Count',
@@ -194,6 +221,7 @@ def rf_user_prediction(user_id, handle):
 
     df = pd.DataFrame(userdata_x, columns=['Statuses Count', 'Followers_Count', 'Friends Count', 'Favourite Count'])
 
+    # performing the predictions on the data
     predict_sentiment = rf_sentiment_model.predict_proba(sentiment)
     predict_user = rf_user_model.predict_proba(df)
     predict_timing = rf_timing_model.predict_proba(timing)
@@ -208,37 +236,45 @@ def rf_user_prediction(user_id, handle):
     timing_percentage = predict_timing[0][1] * 100
     sentiment_percentage = predict_sentiment[0][1] * 100
 
-    print( user_percentage, timing_percentage, sentiment_percentage, tweet_predict_percentage )
+    print(user_percentage, timing_percentage, sentiment_percentage, tweet_predict_percentage)
 
+    # this is a weighted overall prediction based on the accuracy of the models
     overall_prediction = ((user_percentage * 60) + (tweet_predict_percentage * 20) + (timing_percentage * 10) +
                           (sentiment_percentage * 10)) / 100
 
     print('Overall Percentage: ', overall_prediction)
 
+    # returning the prediction to show on the UI
     return int(round(overall_prediction))
 
 
+# function to strip non ascii characters from the tweets, needed for mysql database UTC-8 to work
 def strip_non_ascii(passed_string):
     # Returns the string without non ASCII characters
     stripped = (c for c in passed_string if 0 < ord(c) < 127)
     return ''.join(stripped)
 
 
+# function to check the sentiment of the tweet and create the data to use in the prediction model
 def sentiment_analyses(all_tweet_entries):
     tweets = all_tweet_entries.values_list('user_id', 'text', 'lang', 'id')
 
     sentiment = [0, 0, 0]
     batch_update = ''
 
+    # looping through tweets
     for tweet in tweets:
-
+        # strips non ascii like emoji's or special characters
         passed_tweet = strip_non_ascii(tweet[1])
 
+        # if the language is not english it converts the tweet to english
         if tweet[2] != 'en':
             batch_update += str(tweet[3]) + ':::;:::' + passed_tweet + ';;;:;;;'
 
+        # call to get the tweets sentiment, either positive, negative or neutral
         tweet_sentiment = get_sentiment(tweet[1])
 
+        # creating data depending on sentiment
         if tweet_sentiment == 'positive':
             sentiment[0] += 1
         elif tweet_sentiment == 'neutral':
@@ -250,6 +286,7 @@ def sentiment_analyses(all_tweet_entries):
     return sentiment
 
 
+# function to check the polarity of the text, and returning positive, neutral or negative
 def get_sentiment(text):
     tweet_sentiment = TextBlob(text)
 
@@ -261,8 +298,11 @@ def get_sentiment(text):
         return 'negative'
 
 
+# function to check perform a prediction on each tweet from the user
+# based on the retweet count, number of hashtags, numbers of url's and the the number of mentions
 def tweet_analyses(all_tweet_entries):
 
+    # loading the tweet prediction model
     rf_tweet_filename = 'random_forest_tweet_model.sav'
     rf_tweets_model = pickle.load(open(rf_tweet_filename, 'rb'))
 
@@ -272,20 +312,23 @@ def tweet_analyses(all_tweet_entries):
 
     count = 0
 
+    # loop to count the number of bot tweets predicted
     for bot in predict:
         if bot == 1:
             count += 1
 
+    # returning the percentage of tweets that are predicted as bots
     percentage = count/len(predict)
-    #print('Percentage: ', count/len(predict)*100)
     return percentage
 
 
+# function to generate the time analyses data for use in the timing prediction
 def timing_analyses(all_tweet_entries):
     tweets = all_tweet_entries.values_list('user_id', 'created_at', 'bot')
 
     tweet_timing = [0, 0, 0, 0, 0, 0, 0, 0]
 
+    # for loop to split the time of tweet into data usable for the timing prediction
     for tweet in tweets:
         full_date = tweet[1]
 
@@ -296,8 +339,7 @@ def timing_analyses(all_tweet_entries):
 
         datetime_object = datetime.datetime.strptime(time, "%H:%M:%S")
 
-        # print(day, month, datetime_object)
-
+        # checks the time the tweet was tweeted at
         if datetime.time(0, 0, 0) <= datetime_object.time() <= datetime.time(2, 59, 0):
             tweet_timing[0] += 1
         elif datetime.time(3, 0, 0) <= datetime_object.time() <= datetime.time(5, 59, 0):
@@ -315,20 +357,22 @@ def timing_analyses(all_tweet_entries):
         elif datetime.time(21, 0, 0) <= datetime_object.time() <= datetime.time(23, 59, 0):
             tweet_timing[7] += 1
 
+    # returns the tweet timing data
     print(tweet_timing)
     return tweet_timing
 
 
+# function to render the html template for prediction of users followers
 def followers(request):
     return render(request, 'webapp/followers.html')
 
 
+# function to authenticate the request to access the twitter api
 def followers_callback(request):
 
+    # checks to make sure that the method of the request has been a post method and gets the twitter handle of user
     if 'TwitterHandle_f' in request.session:
         handle = request.session['TwitterHandle_f']
-
-        #print(rf_user_model)
 
         verifier = request.GET.get('oauth_verifier')
 
@@ -337,6 +381,7 @@ def followers_callback(request):
         # request.session.delete('request_token')
         auth.request_token = token
 
+        # try except block to verify the oauth for the twitter api
         try:
             auth.get_access_token(verifier)
 
@@ -370,10 +415,16 @@ def followers_callback(request):
             return render(request, 'webapp/follow_prediction.html', context)
 
         except tweepy.TweepError:
-            return HttpResponse("tweepy access error")
+            context = {
+                'problem': 'Verifier for twitter error'
+            }
+            return render(request, 'webapp/error.html', context)
 
     else:
-        return HttpResponse('worked from outside in else')
+        context = {
+            'problem': 'Twitter handle not passed in properly'
+        }
+        return render(request, 'webapp/error.html', context)
 
 
 def rf_follower_prediction(user_id):

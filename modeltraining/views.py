@@ -555,7 +555,6 @@ def batch_update(text):
 
         split_tweet = tweets.split(':::;:::')
         if split_tweet[0] != '' and split_tweet[1] != '':
-            #print('id: ', split_tweet[0], 'text: ', split_tweet[1])
             tweet_id = int(split_tweet[0])
             t = tweets_app.objects.get(id=tweet_id)
             t.lang = 'en'
@@ -594,8 +593,6 @@ def time_analyses(all_tweet_entries):
             tweet_id = tweet[0]
             count = 0
             previous_day = ['', '', '']
-
-        #print(tweet[1], tweet[0], tweet[2])
 
         if count <= 1000:
             full_date = tweet[1]
@@ -712,8 +709,7 @@ def timing_model_creation(timing_array):
     print('svm: ', accuracy_score(test_y, predict3))
     print('clf: ', accuracy_score(test_y, predict4))
     print('gnb: ', accuracy_score(test_y, predict5))
-    # confusion matrix
-    # oversample data
+
     return predict, predict2, predict3, predict4, predict5
 
 
