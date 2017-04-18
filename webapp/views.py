@@ -363,7 +363,11 @@ def followers_callback(request):
 
                 prediction.extend(rf_follower_prediction(user_id))
 
-            return render(request, 'webapp/follower_prediction.html')
+            context = {
+                'handle': handle
+            }
+
+            return render(request, 'webapp/follow_prediction.html', context)
 
         except tweepy.TweepError:
             return HttpResponse("tweepy access error")

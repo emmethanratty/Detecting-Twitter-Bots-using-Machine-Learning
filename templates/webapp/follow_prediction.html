@@ -163,8 +163,8 @@
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul class="nav navbar-nav">
-                <li class="active"><a href="{% url 'webapp:index' %}">Test User<span class="sr-only">(current)</span></a></li>
-                <li><a href="{% url 'webapp:followers'%}">Test Followers</a></li>
+                <li><a href="{% url 'webapp:index' %}">Test User<span class="sr-only">(current)</span></a></li>
+                <li class="active"><a href="{% url 'webapp:followers'%}">Test Followers</a></li>
               </ul>
             </div><!-- /.navbar-collapse -->
           </div><!-- /.container-fluid -->
@@ -186,7 +186,7 @@
                     </li>
                     <li>
                         <a href="#anch2" data-scroll>
-                            <span class="fa fa-user solo">User Analyses</span>
+                            <span class="fa fa-user solo">Follower Analyses</span>
                         </a>
                     </li>
                     <li>
@@ -216,20 +216,24 @@
                 <div class="row" id="home">
 
                         <div class="jumbotron text-center" >
-                            <h1>Users Prediction</h1>
-                            <p>Below is the prediction for the twitter user {{ handle }}</p>
+                            <h1>Users Followers Prediction</h1>
+                            <p>Below is the prediction for {{ handle }} twitter followers</p>
                         </div>
 
                 </div>
                 <div class="row" id="anch1">
                     <div class="col-md-12 well">
                         <legend>Prediction</legend>
-                        <p>{{ handle }} has a {{ prediction }}% chance of being a bot</p>
-                        <div class="progress">
-                          <div class="progress-bar" role="progressbar" aria-valuenow="{{ prediction }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ prediction }}%;">
-                              {{ prediction }}%
-                          </div>
-                        </div>
+                        <br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br><br>
+                        <br>
                     </div>
                     <div class="col-md-12 well" id="anch2">
                         <legend>User Analyses</legend>
@@ -297,7 +301,6 @@
 
         </div>
 </div>
-
 
 </body>
 </html>
