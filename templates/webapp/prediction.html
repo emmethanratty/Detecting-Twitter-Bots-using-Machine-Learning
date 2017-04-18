@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="{% static 'webapp/css/style.css' %}" />
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.6/wordcloud2.js"></script>
 
     <style>
         #wrapper {
@@ -177,7 +179,7 @@
             <nav id="spy">
                 <ul class="sidebar-nav nav">
                     <li class="sidebar-brand">
-                        <a href="#home"><span class="fa fa-home solo">Home</span></a>
+                        <a href="#home"><span class="fa fa-home solo">Top Of Page</span></a>
                     </li>
                     <li>
                         <a href="#anch1" data-scroll>
@@ -233,63 +235,213 @@
                     </div>
                     <div class="col-md-12 well" id="anch2">
                         <legend>User Analyses</legend>
-                        <br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br>
+                        <div id="canvas-holder" align="center">
+                                <canvas id="userPredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("userPredictionCanvas");
+                                var userChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [ "Status Count", "Followers Count", "Friends Count", "Favourite Count" ],
+                                        datasets: [{
+                                            label: 'User Data Chart',
+                                            data: [ {{ status_count }}, {{ followers_count }}, {{ friends_count}}, {{ favourite_count }} ],
+                                            backgroundColor: [
+                                                'rgba(255, 99, 132, 0.2)',
+                                                'rgba(63, 191, 191, 0.2)',
+                                                'rgba(54, 162, 235, 0.2)',
+                                                'rgba(191, 127, 63, 0.2)'
+                                            ],
+                                            borderColor: [
+                                                'rgba(255, 99, 132, 1)',
+                                                'rgba(63, 191, 191, 1)',
+                                                'rgba(54, 162, 235, 1)',
+                                                'rgba(191, 127, 63, 1)'
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
                    </div>
                     <div class="col-md-12 well" id="anch3">
                         <legend id="anch3"></legend>
                         <legend>Tweet Analyses</legend>
-                        <br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br>
+                        <div id="canvas-holder" align="center">
+                                <canvas id="tweetSumPredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("tweetSumPredictionCanvas");
+                                var tweetSumChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [ "Retweet(sum)", "Hashtags(sum)", "Urls(sum)", "Mentions(sum)"],
+                                        datasets: [{
+                                            label: 'Sum of tweet data (last 1000 tweets)',
+                                            data: [ {{ sumRetweet}}, {{ sumHashtag}}, {{ sumUrl }}, {{ sumMentions}}],
+                                            backgroundColor: [
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                            ],
+                                            borderColor: [
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
+                        <div id="canvas-holder" align="center">
+                                <canvas id="tweetAveragePredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("tweetAveragePredictionCanvas");
+                                var tweetAverageChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [ "Retweet(Average)", "Hashtags(Average)", "Urls(Average)", "Mentions(Average)"],
+                                        datasets: [{
+                                            label: 'Average per Tweet (last 1000 tweets)',
+                                            data: [ {{ averageRetweet}}, {{ averageHastag}}, {{ averageUrl }}, {{ averageMentions}}],
+                                            backgroundColor: [
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                            ],
+                                            borderColor: [
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
+
                    </div>
                     <div class="col-md-12 well" id="anch4">
                         <legend >Sentiment</legend>
-                        <br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br>
+                        <div id="canvas-holder" align="center">
+                                <canvas id="sentimentPredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("sentimentPredictionCanvas");
+                                var sentimentChart = new Chart(ctx, {
+                                    type: 'horizontalBar',
+                                    data: {
+                                        labels: [ "Positive", "Neutral", "Negative" ],
+                                        datasets: [{
+                                            label: 'Sentiment Chart of last 1000 tweets',
+                                            data: [ {{ positive }}, {{ neutral }}, {{ negative}}],
+                                            backgroundColor: [
+                                                'rgba(127, 191, 63, 0.2)',
+                                                'rgba(54, 162, 235, 0.2)',
+                                                'rgba(255, 99, 132, 0.2)',
+                                            ],
+                                            borderColor: [
+                                                'rgba(127, 191, 63, 1)',
+                                                'rgba(54, 162, 235, 1)',
+                                                'rgba(255, 99, 132, 1)',
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
                    </div>
                    <div class="col-md-12 well" id="anch5">
                        <legend>Time Analyses</legend>
-                       <br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br><br>
-                        <br>
+                       <div id="canvas-holder" align="center">
+                                <canvas id="timingPredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("timingPredictionCanvas");
+                                var timingChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: [ "12-3(am)", "3-6(am)", "6-9(am)", "9-12(am)", "12-3(pm)", "3-6(pm)", "6-9(pm)", "9-12(pm)"],
+                                        datasets: [{
+                                            label: 'Time each tweet was tweet (last 1000 tweets)',
+                                            data: [ {{ threeAM}}, {{ sixAm }}, {{ nineAm }}, {{ twelvePm }}, {{ threePm }}, {{ sixPm }}, {{ ninePm }}, {{ twelveAm }},],
+                                            backgroundColor: [
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                                'rgba(76, 51, 25, 0.2)',
+                                            ],
+                                            borderColor: [
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                                'rgba(76, 51, 25, 1)',
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
                    </div>
                 </div>
 

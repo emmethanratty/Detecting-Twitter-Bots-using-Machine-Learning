@@ -124,12 +124,35 @@ def callback(request):
                 insert_tweet_data(tweets, lang, user_id)
 
             # calling the prediction class to check the user
-            prediction = rf_user_prediction(user_id, handle)
+            prediction, user_df, sentiment_df, timing, sum_tweets, average_tweets = rf_user_prediction(user_id, handle)
 
             # this is the context to return variables to the html UI
             context = {
                 'prediction': prediction,
-                'handle': handle
+                'handle': handle,
+                'status_count': user_df.iloc[0][0],
+                'followers_count': user_df.iloc[0][1],
+                'friends_count': user_df.iloc[0][2],
+                'favourite_count': user_df.iloc[0][3],
+                'positive': sentiment_df[0],
+                'neutral': sentiment_df[1],
+                'negative': sentiment_df[2],
+                'threeAM': timing[0],
+                'sixAm': timing[1],
+                'nineAm': timing[2],
+                'twelvePm': timing[3],
+                'threePm': timing[4],
+                'sixPm': timing[5],
+                'ninePm': timing[6],
+                'twelveAm': timing[7],
+                'sumRetweet': sum_tweets[0],
+                'sumHashtag': sum_tweets[1],
+                'sumUrl': sum_tweets[2],
+                'sumMentions': sum_tweets[3],
+                'averageRetweet': average_tweets[0],
+                'averageHastag': average_tweets[1],
+                'averageUrl': average_tweets[2],
+                'averageMentions': average_tweets[3]
             }
 
             # renders the web page template for user prediction
@@ -225,7 +248,7 @@ def rf_user_prediction(user_id, handle):
     predict_sentiment = rf_sentiment_model.predict_proba(sentiment)
     predict_user = rf_user_model.predict_proba(df)
     predict_timing = rf_timing_model.predict_proba(timing)
-    tweet_predict_percentage = tweet_analyses(tweets)
+    tweet_predict_percentage, sum_tweets, average_tweets = tweet_analyses(tweets)
 
     print('Tweet Percentage: ', tweet_predict_percentage)
     print('User Predict: ', predict_user)
@@ -245,7 +268,7 @@ def rf_user_prediction(user_id, handle):
     print('Overall Percentage: ', overall_prediction)
 
     # returning the prediction to show on the UI
-    return int(round(overall_prediction))
+    return int(round(overall_prediction)), df, sentiment, timing, sum_tweets, average_tweets
 
 
 # function to strip non ascii characters from the tweets, needed for mysql database UTC-8 to work
@@ -308,6 +331,27 @@ def tweet_analyses(all_tweet_entries):
 
     tweets = all_tweet_entries.values_list('retweet_count', 'num_hashtags', 'num_urls', 'num_mentions')
 
+    retweet_sum = 0
+    hashtag_sum = 0
+    url_sum = 0
+    mentions_sum = 0
+    num_tweets = 0
+
+    for tweet in tweets:
+        retweet_sum = tweet[0]
+        hashtag_sum += tweet[1]
+        url_sum += tweet[2]
+        mentions_sum += tweet[3]
+        num_tweets += 1
+
+    average_retweet = retweet_sum / num_tweets
+    average_hashtag = hashtag_sum / num_tweets
+    average_url = url_sum / num_tweets
+    average_mentions = mentions_sum / num_tweets
+
+    sum_tweets = [retweet_sum, hashtag_sum, url_sum, mentions_sum]
+    average_tweets = [average_retweet, average_hashtag, average_url, average_mentions]
+
     predict = rf_tweets_model.predict(tweets)
 
     count = 0
@@ -319,7 +363,7 @@ def tweet_analyses(all_tweet_entries):
 
     # returning the percentage of tweets that are predicted as bots
     percentage = count/len(predict)
-    return percentage
+    return percentage, sum_tweets, average_tweets
 
 
 # function to generate the time analyses data for use in the timing prediction
