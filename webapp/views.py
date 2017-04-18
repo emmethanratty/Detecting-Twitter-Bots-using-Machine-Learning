@@ -124,7 +124,7 @@ def callback(request):
                 insert_tweet_data(tweets, lang, user_id)
 
             # calling the prediction class to check the user
-            prediction, user_df, sentiment_df, timing, sum_tweets, average_tweets = rf_user_prediction(user_id, handle)
+            prediction, user_df, sentiment_df, timing, sum_tweets, average_tweets, num_tweets = rf_user_prediction(user_id, handle)
 
             # this is the context to return variables to the html UI
             context = {
@@ -152,7 +152,8 @@ def callback(request):
                 'averageRetweet': average_tweets[0],
                 'averageHastag': average_tweets[1],
                 'averageUrl': average_tweets[2],
-                'averageMentions': average_tweets[3]
+                'averageMentions': average_tweets[3],
+                'num_tweets': num_tweets
             }
 
             # renders the web page template for user prediction
@@ -248,7 +249,7 @@ def rf_user_prediction(user_id, handle):
     predict_sentiment = rf_sentiment_model.predict_proba(sentiment)
     predict_user = rf_user_model.predict_proba(df)
     predict_timing = rf_timing_model.predict_proba(timing)
-    tweet_predict_percentage, sum_tweets, average_tweets = tweet_analyses(tweets)
+    tweet_predict_percentage, sum_tweets, average_tweets, num_tweets = tweet_analyses(tweets)
 
     print('Tweet Percentage: ', tweet_predict_percentage)
     print('User Predict: ', predict_user)
@@ -261,14 +262,20 @@ def rf_user_prediction(user_id, handle):
 
     print(user_percentage, timing_percentage, sentiment_percentage, tweet_predict_percentage)
 
-    # this is a weighted overall prediction based on the accuracy of the models
-    overall_prediction = ((user_percentage * 60) + (tweet_predict_percentage * 20) + (timing_percentage * 10) +
-                          (sentiment_percentage * 10)) / 100
+    # check to make sure that there are tweets the user has said
+    if tweet_predict_percentage != -1:
+        # this is a weighted overall prediction based on the accuracy of the models
+        overall_prediction = ((user_percentage * 60) + (tweet_predict_percentage * 20) + (timing_percentage * 10) +
+                              (sentiment_percentage * 10)) / 100
+    elif tweet_predict_percentage == -1:
+        overall_prediction = (predict_user[0][1] * 100)
+        if overall_prediction == 100:
+            overall_prediction = 95
 
     print('Overall Percentage: ', overall_prediction)
 
     # returning the prediction to show on the UI
-    return int(round(overall_prediction)), df, sentiment, timing, sum_tweets, average_tweets
+    return int(round(overall_prediction)), df, sentiment, timing, sum_tweets, average_tweets, num_tweets
 
 
 # function to strip non ascii characters from the tweets, needed for mysql database UTC-8 to work
@@ -338,32 +345,37 @@ def tweet_analyses(all_tweet_entries):
     num_tweets = 0
 
     for tweet in tweets:
-        retweet_sum = tweet[0]
+        retweet_sum += tweet[0]
         hashtag_sum += tweet[1]
         url_sum += tweet[2]
         mentions_sum += tweet[3]
         num_tweets += 1
+    # check to make sure there are tweets
+    if num_tweets > 0:
+        average_retweet = retweet_sum / num_tweets
+        average_hashtag = hashtag_sum / num_tweets
+        average_url = url_sum / num_tweets
+        average_mentions = mentions_sum / num_tweets
 
-    average_retweet = retweet_sum / num_tweets
-    average_hashtag = hashtag_sum / num_tweets
-    average_url = url_sum / num_tweets
-    average_mentions = mentions_sum / num_tweets
+        sum_tweets = [retweet_sum, hashtag_sum, url_sum, mentions_sum]
+        average_tweets = [average_retweet, average_hashtag, average_url, average_mentions]
 
-    sum_tweets = [retweet_sum, hashtag_sum, url_sum, mentions_sum]
-    average_tweets = [average_retweet, average_hashtag, average_url, average_mentions]
+        predict = rf_tweets_model.predict(tweets)
 
-    predict = rf_tweets_model.predict(tweets)
+        count = 0
 
-    count = 0
+        # loop to count the number of bot tweets predicted
+        for bot in predict:
+            if bot == 1:
+                count += 1
 
-    # loop to count the number of bot tweets predicted
-    for bot in predict:
-        if bot == 1:
-            count += 1
-
-    # returning the percentage of tweets that are predicted as bots
-    percentage = count/len(predict)
-    return percentage, sum_tweets, average_tweets
+        # returning the percentage of tweets that are predicted as bots
+        percentage = count / len(predict)
+        return percentage, sum_tweets, average_tweets, num_tweets
+    else:
+        # returns no numbers if there are no tweets, -1 is returned as percentage if there are no tweets
+        # for error checking later
+        return -1, [0, 0, 0, 0], [0, 0, 0, 0], 0
 
 
 # function to generate the time analyses data for use in the timing prediction
@@ -435,14 +447,17 @@ def followers_callback(request):
             main_id = main_user.id
 
             ids = []
-            prediction = []
+            prediction_array = []
+            status_array = []
 
+            # for to get the users followers
             for follow_id in tweepy.Cursor(api.followers_ids, screen_name=handle).items(100):
                 ids.append(follow_id)
-                print(follow_id)
+                print('Follower ID:', follow_id)
 
             print(len(ids))
-
+            follower_length = len(ids)
+            # loop to get ids and fetch users from twitter api
             for user_id in ids:
                 user = api.get_user(user_id)
 
@@ -450,10 +465,29 @@ def followers_callback(request):
 
                 print(strip_non_ascii(user.name))
 
-                prediction.extend(rf_follower_prediction(user_id))
+                predictions = rf_follower_prediction(user_id)
+
+                prediction_array.extend(predictions)
+                name_and_status = [user.screen_name, predictions]
+                status_array.append(name_and_status)
+
+            print(status_array)
+            bots = 0
+            real = 0
+            for prediction in prediction_array:
+                if prediction == 1:
+                    bots += 1
+                else:
+                    real += 1
 
             context = {
-                'handle': handle
+                'handle': handle,
+                'bots': bots,
+                'real': real,
+                'status_array': status_array,
+                'follower_length': len(prediction_array),
+                'status_array': status_array,
+                'follower_length': follower_length
             }
 
             return render(request, 'webapp/follow_prediction.html', context)
@@ -471,6 +505,7 @@ def followers_callback(request):
         return render(request, 'webapp/error.html', context)
 
 
+# function to test the users followers
 def rf_follower_prediction(user_id):
     rf_user_filename = 'random_forest_user_model.sav'
     rf_user_model = pickle.load(open(rf_user_filename, 'rb'))

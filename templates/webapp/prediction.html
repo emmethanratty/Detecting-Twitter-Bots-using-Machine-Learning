@@ -285,18 +285,16 @@
                                 var tweetSumChart = new Chart(ctx, {
                                     type: 'bar',
                                     data: {
-                                        labels: [ "Retweet(sum)", "Hashtags(sum)", "Urls(sum)", "Mentions(sum)"],
+                                        labels: ["Hashtags(sum)", "Urls(sum)", "Mentions(sum)"],
                                         datasets: [{
-                                            label: 'Sum of tweet data (last 1000 tweets)',
-                                            data: [ {{ sumRetweet}}, {{ sumHashtag}}, {{ sumUrl }}, {{ sumMentions}}],
+                                            label: 'Sum of tweet data (last {{ num_tweets }} tweets)',
+                                            data: [ {{ sumHashtag}}, {{ sumUrl }}, {{ sumMentions}}],
                                             backgroundColor: [
-                                                'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
                                             ],
                                             borderColor: [
-                                                'rgba(127, 63, 191, 1)',
                                                 'rgba(127, 63, 191, 1)',
                                                 'rgba(127, 63, 191, 1)',
                                                 'rgba(127, 63, 191, 1)',
@@ -323,12 +321,11 @@
                                 var tweetAverageChart = new Chart(ctx, {
                                     type: 'bar',
                                     data: {
-                                        labels: [ "Retweet(Average)", "Hashtags(Average)", "Urls(Average)", "Mentions(Average)"],
+                                        labels: ["Hashtags(Average)", "Urls(Average)", "Mentions(Average)"],
                                         datasets: [{
-                                            label: 'Average per Tweet (last 1000 tweets)',
-                                            data: [ {{ averageRetweet}}, {{ averageHastag}}, {{ averageUrl }}, {{ averageMentions}}],
+                                            label: 'Average per Tweet (last {{ num_tweets }} tweets)',
+                                            data: [{{ averageHastag}}, {{ averageUrl }}, {{ averageMentions}}],
                                             backgroundColor: [
-                                                'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',
@@ -336,6 +333,39 @@
                                             borderColor: [
                                                 'rgba(127, 63, 191, 1)',
                                                 'rgba(127, 63, 191, 1)',
+                                                'rgba(127, 63, 191, 1)',
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        scales: {
+                                            yAxes: [{
+                                                ticks: {
+                                                    beginAtZero:true
+                                                }
+                                            }]
+                                        }
+                                    }
+                                });
+                        </script>
+                        <div id="canvas-holder" align="center">
+                                <canvas id="retweetPredictionCanvas"></canvas>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById("retweetPredictionCanvas");
+                                var rewtweetAverageChart = new Chart(ctx, {
+                                    type: 'horizontalBar',
+                                    data: {
+                                        labels: ["Retweet Average", "Retweet(Sum)"],
+                                        datasets: [{
+                                            label: 'Retweet average and sum (last {{ num_tweets }} tweets)',
+                                            data: [{{averageRetweet}}, {{ sumRetweet }}],
+                                            backgroundColor: [
+                                                'rgba(127, 63, 191, 0.2)',
+                                                'rgba(127, 63, 191, 0.2)',
+                                            ],
+                                            borderColor: [
                                                 'rgba(127, 63, 191, 1)',
                                                 'rgba(127, 63, 191, 1)',
                                             ],
@@ -367,7 +397,7 @@
                                     data: {
                                         labels: [ "Positive", "Neutral", "Negative" ],
                                         datasets: [{
-                                            label: 'Sentiment Chart of last 1000 tweets',
+                                            label: 'Sentiment Chart of last {{ num_tweets }} tweets',
                                             data: [ {{ positive }}, {{ neutral }}, {{ negative}}],
                                             backgroundColor: [
                                                 'rgba(127, 191, 63, 0.2)',
@@ -406,7 +436,7 @@
                                     data: {
                                         labels: [ "12-3(am)", "3-6(am)", "6-9(am)", "9-12(am)", "12-3(pm)", "3-6(pm)", "6-9(pm)", "9-12(pm)"],
                                         datasets: [{
-                                            label: 'Time each tweet was tweet (last 1000 tweets)',
+                                            label: 'Time each tweet was tweet (last {{ num_tweets }} tweets)',
                                             data: [ {{ threeAM}}, {{ sixAm }}, {{ nineAm }}, {{ twelvePm }}, {{ threePm }}, {{ sixPm }}, {{ ninePm }}, {{ twelveAm }},],
                                             backgroundColor: [
                                                 'rgba(76, 51, 25, 0.2)',
