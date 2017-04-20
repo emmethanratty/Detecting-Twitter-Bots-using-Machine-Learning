@@ -4,7 +4,6 @@ import numpy as np
 import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_fscore_support
-from django.http import HttpResponse
 from textblob import TextBlob
 import re
 from sklearn.metrics import accuracy_score
@@ -13,8 +12,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn import linear_model
 import datetime
+from django.shortcuts import render
 
 
 # function for the creation of the models
@@ -27,18 +26,25 @@ def index(request):
 
     # creation of models for the user and return the prediction
     nearest_neighbor(all_users_entries)
+    print('nn done')
     predict_linear = linear_model(all_users_entries)
-    predict_svm = support_vector_machines(all_users_entries)
+    print('lm done', predict_linear)
+    # predict_svm = support_vector_machines(all_users_entries)
+    # print('svm done', predict_svm)
     predict_rf = random_forest(all_users_entries)
+    print('rf done', predict_rf)
 
     # creation of the models for tweets and return the tweet prediction
     predict_rf_tweet = random_forest_tweets(bots, real)
+    print('tweet rf done', predict_rf_tweet)
 
     # creation of the sentiment model and the return of the sentiment prediction
     sorted_tweets = sentiment_analyses(all_tweet_entries)
+    print('sentiment dine', sorted_tweets)
 
     # creation of the time model nd the return of the timing prediction
     timing = time_analyses(all_tweet_entries)
+    print('time done', timing)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -48,7 +54,7 @@ def index(request):
     #          'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
     #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
 
-    return HttpResponse(timing, sorted_tweets, predict_linear, predict_rf, predict_rf_tweet, predict_svm)
+    return render(request, 'modeltraining/models_finished.html')
 
 
 # function to take the real and bot tweets and create the models for the tweets
@@ -292,6 +298,7 @@ def linear_model(all_users_entries):
     userdata_x_test = userdata_x_test.reshape(len(userdata_x_test), 1)
 
     # initialize, fit and predict the linear regression model
+    from sklearn import linear_model
     regr = linear_model.LinearRegression()
     regr.fit(userdata_x_train, userdata_y_train)
     predict = np.mean((regr.predict(userdata_x_test.astype(float))-userdata_y_test.astype(float))**2)
@@ -468,6 +475,9 @@ def nearest_neighbor_sentiment(sentiment_list):
     print('Neural: ', accuracy_score(test_y, predict3))
     print('GNB: ', accuracy_score(test_y, predict4))
 
+    filename = 'svc_sentiment_model.sav'
+    pickle.dump(svc, open(filename, 'wb'))
+
     return predict
 
 
@@ -510,8 +520,8 @@ def random_forest_sentiment(sentiment_list):
     predict = rf.predict(test[sentiment_names])
 
     # save the random forest model to the disk
-    filename = 'random_forest_sentiment_model.sav'
-    pickle.dump(rf, open(filename, 'wb'))
+    # filename = 'random_forest_sentiment_model.sav'
+    # pickle.dump(rf, open(filename, 'wb'))
 
     print('Random: ', accuracy_score(test_y, predict))
 
