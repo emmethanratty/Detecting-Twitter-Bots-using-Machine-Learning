@@ -24,27 +24,27 @@ def index(request):
     bots = tweets_app.objects.all().filter(bot=True)
     real = tweets_app.objects.all().filter(bot=False)
 
-    # creation of models for the user and return the prediction
-    nearest_neighbor(all_users_entries)
-    print('nn done')
-    predict_linear = linear_model(all_users_entries)
-    print('lm done', predict_linear)
-    # predict_svm = support_vector_machines(all_users_entries)
-    # print('svm done', predict_svm)
-    predict_rf = random_forest(all_users_entries)
-    print('rf done', predict_rf)
-
-    # creation of the models for tweets and return the tweet prediction
-    predict_rf_tweet = random_forest_tweets(bots, real)
-    print('tweet rf done', predict_rf_tweet)
+    # # creation of models for the user and return the prediction
+    # nearest_neighbor(all_users_entries)
+    # print('nn done')
+    # predict_linear = linear_model(all_users_entries)
+    # print('lm done', predict_linear)
+    # # predict_svm = support_vector_machines(all_users_entries)
+    # # print('svm done', predict_svm)
+    # predict_rf = random_forest(all_users_entries)
+    # print('rf done', predict_rf)
+    #
+    # # creation of the models for tweets and return the tweet prediction
+    # predict_rf_tweet = random_forest_tweets(bots, real)
+    # print('tweet rf done', predict_rf_tweet)
 
     # creation of the sentiment model and the return of the sentiment prediction
     sorted_tweets = sentiment_analyses(all_tweet_entries)
-    print('sentiment dine', sorted_tweets)
+    print('sentiment done', sorted_tweets)
 
-    # creation of the time model nd the return of the timing prediction
-    timing = time_analyses(all_tweet_entries)
-    print('time done', timing)
+    # # creation of the time model nd the return of the timing prediction
+    # timing = time_analyses(all_tweet_entries)
+    # print('time done', timing)
 
     # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
     #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
@@ -340,8 +340,8 @@ def nearest_neighbor(all_users_entries):
 
     # initialize, fit and predict the user data using knn
     knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
-                         metric_params=None, n_jobs=1, n_neighbors=5, p=2,
-                         weights='uniform')
+                               metric_params=None, n_jobs=1, n_neighbors=5, p=2,
+                               weights='uniform')
     knn.fit(userdata_x_train, userdata_y_train)
     predict = knn.predict(userdata_x_test)
 
@@ -385,13 +385,13 @@ def sentiment_analyses(all_tweet_entries):
 
             # check to see if there is user data to be translated
             if batch_update_string != '':
-                # trandlate the string using a batch update
+                # translate the string using a batch update
                 print(batch_update_string)
                 translated_string = translate_string(batch_update_string)
                 print(translated_string)
 
             # insert the tweet data into the sentiment database
-            #insert_sentiment(tweet[0], sentiment)
+            # insert_sentiment(tweet[0], sentiment)
             sentiment_list.append(sentiment)
             sentiment = [0, 0, 0, 0]
             count = 0
@@ -475,8 +475,8 @@ def nearest_neighbor_sentiment(sentiment_list):
     print('Neural: ', accuracy_score(test_y, predict3))
     print('GNB: ', accuracy_score(test_y, predict4))
 
-    filename = 'svc_sentiment_model.sav'
-    pickle.dump(svc, open(filename, 'wb'))
+    filename = 'sentiment_model.sav'
+    pickle.dump(gnb, open(filename, 'wb'))
 
     return predict
 
@@ -614,7 +614,7 @@ def time_analyses(all_tweet_entries):
     sorted_tweets = sorted(tweets, key=lambda tw: tw[0])
     tweet_id = sorted_tweets[0][0]
 
-    # loop to go through the teets
+    # loop to go through the tweets
     for tweet in sorted_tweets:
 
         # check to see if the user has changed, and if so reset the data and add the new time data to an array
@@ -638,7 +638,6 @@ def time_analyses(all_tweet_entries):
             split_date = full_date.split(' ')
 
             # split the date into usable fields
-            day = split_date[0]
             month = split_date[1]
             day_num = split_date[2]
             time = split_date[3]
@@ -707,7 +706,7 @@ def timing_model_creation(timing_array):
     df = pd.DataFrame(timing, columns=['0-3', '3-6', '6-9', '9-12', '12-15', '15-18', '18-21', '21-24', 'same day',
                                        'bot'])
 
-    # split the data into a taining and test set
+    # split the data into a training and test set
     df['to_train'] = np.random.uniform(0, 1, len(df)) <= .75
     print(df.head())
     train, test = df[df['to_train'] == True], df[df['to_train'] == False]
@@ -721,11 +720,13 @@ def timing_model_creation(timing_array):
     test_y = test['bot']
 
     # initialize, fit and predict the models
-    rf = RandomForestClassifier(n_jobs=-1, n_estimators=10000, max_features=.2, min_samples_leaf=100, oob_score=True, random_state=50)
+    rf = RandomForestClassifier(n_jobs=-1, n_estimators=10000, max_features=.2, min_samples_leaf=100, oob_score=True,
+                                random_state=50)
     rf.fit(train[timing_names], y)
     predict = rf.predict(test[timing_names])
 
-    knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski', metric_params=None, n_jobs=1,  n_neighbors=5, p=2, weights='uniform')
+    knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski', metric_params=None, n_jobs=1,
+                               n_neighbors=5, p=2, weights='uniform')
     knn.fit(train[timing_names], y)
     predict2 = knn.predict(test[timing_names])
 

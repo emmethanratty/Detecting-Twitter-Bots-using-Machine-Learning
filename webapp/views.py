@@ -223,7 +223,7 @@ def insert_tweet_data(tweets, lang, user_id):
 # the function then loads the prediction models and performs the necessary prediction on the data
 def rf_user_prediction(user_id, handle):
     rf_user_filename = 'random_forest_user_model.sav'
-    rf_sentiment_filename = 'svc_sentiment_model.sav'
+    rf_sentiment_filename = 'sentiment_model.sav'
     rf_timing_filename = 'random_forest_timing_model.sav'
     rf_user_model = pickle.load(open(rf_user_filename, 'rb'))
     rf_sentiment_model = pickle.load(open(rf_sentiment_filename, 'rb'))

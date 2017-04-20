@@ -8,6 +8,7 @@
       <w>emoji</w>
       <w>hashtag</w>
       <w>hashtags</w>
+      <w>minkowski</w>
       <w>modeltraining</w>
       <w>nameandstatus</w>
       <w>naturalwhite</w>
@@ -18,6 +19,7 @@
       <w>userdata</w>
       <w>webapp</w>
       <w>widthratio</w>
+      <w>yandex</w>
     </words>
   </dictionary>
 </component>
