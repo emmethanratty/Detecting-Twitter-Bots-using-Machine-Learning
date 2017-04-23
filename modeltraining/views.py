@@ -24,35 +24,27 @@ def index(request):
     bots = tweets_app.objects.all().filter(bot=True)
     real = tweets_app.objects.all().filter(bot=False)
 
-    # # creation of models for the user and return the prediction
-    # nearest_neighbor(all_users_entries)
-    # print('nn done')
-    # predict_linear = linear_model(all_users_entries)
-    # print('lm done', predict_linear)
-    # # predict_svm = support_vector_machines(all_users_entries)
-    # # print('svm done', predict_svm)
-    # predict_rf = random_forest(all_users_entries)
-    # print('rf done', predict_rf)
-    #
-    # # creation of the models for tweets and return the tweet prediction
-    # predict_rf_tweet = random_forest_tweets(bots, real)
-    # print('tweet rf done', predict_rf_tweet)
+    # creation of models for the user and return the prediction
+    nearest_neighbor(all_users_entries)
+    print('nn done')
+    predict_linear = linear_model(all_users_entries)
+    print('lm done', predict_linear)
+    # predict_svm = support_vector_machines(all_users_entries)
+    # print('svm done', predict_svm)
+    predict_rf = random_forest(all_users_entries)
+    print('rf done', predict_rf)
+
+    # creation of the models for tweets and return the tweet prediction
+    predict_rf_tweet = random_forest_tweets(bots, real)
+    print('tweet rf done', predict_rf_tweet)
 
     # creation of the sentiment model and the return of the sentiment prediction
     sorted_tweets = sentiment_analyses(all_tweet_entries)
     print('sentiment done', sorted_tweets)
 
-    # # creation of the time model nd the return of the timing prediction
-    # timing = time_analyses(all_tweet_entries)
-    # print('time done', timing)
-
-    # names = ['ID', 'Name', 'Screen Name', 'Status Count', 'Followers Count', 'Friend Count', 'Favourites Count',
-    #          'Listed Count', 'Created At', 'Url', 'Language', 'Time Zone', 'Location', 'Default Profile',
-    #          'Default Profile Image', 'Geo Enabled', 'Profile Image URL', 'Profile Banner URL',
-    #          'Profile User Background Image', 'Profile Background image url', 'Profile Text Colour',
-    #          'Profile Image url https', 'Profile sidebar border color', 'Profile background tile',
-    #          'Profile Sidebar Fill Colour', 'Profile Background Image url', 'Profile background colour',
-    #          'Profile link colour', 'Utc Offset', 'Protected', 'Verified', 'Updated', 'Dataset', 'Bot']
+    # creation of the time model nd the return of the timing prediction
+    timing = time_analyses(all_tweet_entries)
+    print('time done', timing)
 
     return render(request, 'modeltraining/models_finished.html')
 
@@ -119,7 +111,7 @@ def random_forest_tweets(bots, real):
     test_y = test['Bot']
 
     # initialize, fit and predict the random forest user data
-    rf = RandomForestClassifier(n_jobs=2, n_estimators=1000, max_features="log2")
+    rf = RandomForestClassifier(n_jobs=-1)
     rf.fit(train[tweet_data_names], y)
     predict = rf.predict(test[tweet_data_names])
     print('rf done')
@@ -133,8 +125,6 @@ def random_forest_tweets(bots, real):
     # create the gaussian and random forest models and save to the disk
     filename = 'random_forest_tweet_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
-    filename = 'neural_tweet_model.sav'
-    pickle.dump(gnb, open(filename, 'wb'))
 
     # get accuracy of the models
     print(accuracy_score(test_y, predict))
@@ -206,7 +196,6 @@ def random_forest(all_users_entries):
     print((count / len(predict)*100))
 
     # create the random forest model
-    print(precision_recall_fscore_support(predict, true))
     filename = 'random_forest_user_model.sav'
     pickle.dump(rf, open(filename, 'wb'))
 
