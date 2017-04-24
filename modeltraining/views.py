@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import pickle
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import precision_recall_fscore_support
 from textblob import TextBlob
 import re
 from sklearn.metrics import accuracy_score
@@ -74,9 +73,6 @@ def random_forest_tweets(bots, real):
         tweetdata_x_django.append([tweet.retweet_count, tweet.num_hashtags, tweet.num_urls, tweet.num_mentions])
         tweetdata_y_django.append(tweet.bot)
 
-    # tweetdata_x_django = upscaled_data.values_list('retweet_count', 'num_hashtags', 'num_urls', 'num_mentions')
-    # tweetdata_y_django = upscaled_data.values_list('bot', flat=True)
-
     tweetdata_y_bool = []
 
     # for loop to format the boolean as 1's and 0's
@@ -122,13 +118,13 @@ def random_forest_tweets(bots, real):
     predict2 = gnb.predict(test[tweet_data_names])
     print('neural done')
 
-    # create the gaussian and random forest models and save to the disk
-    filename = 'random_forest_tweet_model.sav'
-    pickle.dump(rf, open(filename, 'wb'))
-
     # get accuracy of the models
     print(accuracy_score(test_y, predict))
     print(accuracy_score(test_y, predict2))
+
+    # create the gaussian and random forest models and save to the disk
+    filename = 'random_forest_tweet_model.sav'
+    pickle.dump(rf, open(filename, 'wb'))
 
     return predict
 
@@ -393,7 +389,7 @@ def sentiment_analyses(all_tweet_entries):
             # strip the tweet of non ascii characters
             passed_tweet = strip_tweet(tweet[1])
 
-            # if the tweet language is not in english add to a variable to be passed into batch updata
+            # if the tweet language is not in english add to a variable to be passed into batch update
             if tweet[3] != 'en':
                 batch_update_string += str(tweet[4]) + ':::;:::' + passed_tweet + ';;;:;;;'
 
@@ -411,13 +407,13 @@ def sentiment_analyses(all_tweet_entries):
 
     # predict the sentiment data
     predict = random_forest_sentiment(sentiment_list)
-    predict2 = nearest_neighbor_sentiment(sentiment_list)
+    predict2 = sentiment_model_training(sentiment_list)
     print(len(predict2))
     return predict
 
 
 # create the nearest neighbor model for the sentiment list
-def nearest_neighbor_sentiment(sentiment_list):
+def sentiment_model_training(sentiment_list):
 
     # add the sentiment to a dataframe
     sentiment = np.core.records.fromrecords(sentiment_list, names=['positive', 'neutral', 'negative', 'bot'])
