@@ -14,7 +14,6 @@
     <link rel="stylesheet" type="text/css" href="{% static 'webapp/css/style.css' %}" />
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.6/wordcloud2.js"></script>
 
     <style>
         #wrapper {
@@ -324,7 +323,7 @@
                                         labels: ["Hashtags(Average)", "Urls(Average)", "Mentions(Average)"],
                                         datasets: [{
                                             label: 'Average per Tweet (last {{ num_tweets }} tweets)',
-                                            data: [{{ averageHastag}}, {{ averageUrl }}, {{ averageMentions}}],
+                                            data: [{{ averageHashtag}}, {{ averageUrl }}, {{ averageMentions}}],
                                             backgroundColor: [
                                                 'rgba(127, 63, 191, 0.2)',
                                                 'rgba(127, 63, 191, 0.2)',

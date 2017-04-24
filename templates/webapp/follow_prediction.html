@@ -10,7 +10,6 @@
     <link rel="stylesheet" type="text/css" href="{% static 'webapp/css/style.css' %}" />
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.6/wordcloud2.js"></script>
 
     <style>
         #wrapper {
@@ -232,9 +231,9 @@
                         {% for name, status in status_array %}
                             {% if status == 1 %}
                                 <p>User @{{ name }} is a bot</p>
-                            {% else %}
-                                <p>User @{{ name }} is not a bot</p>
-                            {% endif %}
+{#                            {% else %}#}
+{#                                <p>User @{{ name }} is not a bot</p>#}
+{#                            {% endif %}#}
                         {% endfor %}
                    </div>
                 </div>

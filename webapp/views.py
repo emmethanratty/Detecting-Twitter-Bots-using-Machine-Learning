@@ -150,7 +150,7 @@ def callback(request):
                 'sumUrl': sum_tweets[2],
                 'sumMentions': sum_tweets[3],
                 'averageRetweet': average_tweets[0],
-                'averageHastag': average_tweets[1],
+                'averageHashtag': average_tweets[1],
                 'averageUrl': average_tweets[2],
                 'averageMentions': average_tweets[3],
                 'num_tweets': num_tweets
