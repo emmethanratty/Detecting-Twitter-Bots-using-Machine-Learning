@@ -28,6 +28,7 @@ def index(request):
     print('nn done')
     predict_linear = linear_model(all_users_entries)
     print('lm done', predict_linear)
+    # Takes a long time to run, run at own risk
     # predict_svm = support_vector_machines(all_users_entries)
     # print('svm done', predict_svm)
     predict_rf = random_forest(all_users_entries)
